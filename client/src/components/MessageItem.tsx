@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import type { GroupedMessage, Reaction } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import Avatar from "./Avatar";
@@ -156,10 +156,13 @@ interface MessageItemProps {
   hoveredMsgId: number | null;
   pickerMsgId: number | null;
   currentUsername: string;
+  currentUserId: number;
   onHover: (id: number | null) => void;
   onPickerToggle: (id: number | null) => void;
   onReact: (messageId: number, emoji: string) => void;
   onReply: (msg: GroupedMessage) => void;
+  onEdit: (messageId: number, content: string) => void;
+  onDelete: (messageId: number) => void;
   onUsernameClick: (userId: number, username: string, el: HTMLElement) => void;
   resolveNickname: (userId: number, username: string) => string;
 }
@@ -169,16 +172,22 @@ export default function MessageItem({
   hoveredMsgId,
   pickerMsgId,
   currentUsername,
+  currentUserId,
   onHover,
   onPickerToggle,
   onReact,
   onReply,
+  onEdit,
+  onDelete,
   onUsernameClick,
   resolveNickname,
 }: MessageItemProps) {
   const { theme } = useTheme();
   const isHovered = hoveredMsgId === msg.id;
   const isPickerOpen = pickerMsgId === msg.id;
+  const isOwnMessage = msg.user_id === currentUserId;
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(msg.content);
 
   return (
     <div
@@ -235,10 +244,39 @@ export default function MessageItem({
           </div>
         )}
 
-        {/* Message content with hyperlinks */}
-        <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text, paddingRight: "4.5rem" }}>
-          {renderContent(msg.content, theme.primary)}
-        </div>
+        {/* Message content — inline edit or normal render */}
+        {editing ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editText.trim() && editText.trim() !== msg.content) onEdit(msg.id, editText.trim());
+              setEditing(false);
+            }}
+            style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}
+          >
+            <input
+              autoFocus
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") { setEditing(false); setEditText(msg.content); } }}
+              style={{
+                flex: 1, background: theme.surface2 || theme.surface,
+                border: `1px solid ${theme.primaryDim}`, borderRadius: "3px",
+                color: theme.text, fontSize: "0.9rem", padding: "3px 8px",
+                fontFamily: "'Share Tech Mono', monospace",
+              }}
+            />
+            <button type="submit" style={{ background: "none", border: `1px solid ${theme.primaryDim}`, borderRadius: "3px", color: theme.primary, fontSize: "0.7rem", padding: "2px 8px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}>SAVE</button>
+            <button type="button" onClick={() => { setEditing(false); setEditText(msg.content); }} style={{ background: "none", border: `1px solid ${theme.border}`, borderRadius: "3px", color: theme.textDim, fontSize: "0.7rem", padding: "2px 8px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}>CANCEL</button>
+          </form>
+        ) : (
+          <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text, paddingRight: "4.5rem" }}>
+            {renderContent(msg.content, theme.primary)}
+            {msg.edited_at && (
+              <span style={{ fontSize: "0.65rem", color: theme.textDim, marginLeft: "6px", fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>(edited)</span>
+            )}
+          </div>
+        )}
 
         {/* Reactions + action buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
@@ -279,6 +317,30 @@ export default function MessageItem({
               >
                 ↩ REPLY
               </button>
+
+              {/* Edit + Delete — only for own messages */}
+              {isOwnMessage && !editing && (
+                <>
+                  <button
+                    style={{ border: `1px solid ${theme.border}`, background: "transparent", cursor: "pointer", fontSize: "0.7rem", padding: "1px 6px", borderRadius: "10px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em", transition: "all 0.15s", lineHeight: "1.6", color: theme.textDim } as React.CSSProperties}
+                    onClick={() => { setEditing(true); setEditText(msg.content); }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = theme.primary; e.currentTarget.style.borderColor = theme.primaryDim; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
+                    title="Edit"
+                  >
+                    ✎ EDIT
+                  </button>
+                  <button
+                    style={{ border: `1px solid ${theme.border}`, background: "transparent", cursor: "pointer", fontSize: "0.7rem", padding: "1px 6px", borderRadius: "10px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em", transition: "all 0.15s", lineHeight: "1.6", color: theme.textDim } as React.CSSProperties}
+                    onClick={() => { if (window.confirm("Delete this message?")) onDelete(msg.id); }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = theme.error; e.currentTarget.style.borderColor = theme.error; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
+                    title="Delete"
+                  >
+                    ✕ DEL
+                  </button>
+                </>
+              )}
 
               {/* React button */}
               <div style={{ position: "relative" }}>

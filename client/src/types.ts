@@ -26,6 +26,7 @@ export interface Message {
   reply_to_id?: number | null;
   reply_to_username?: string | null;
   reply_to_content?: string | null;
+  edited_at?: string | null;
 }
 
 export interface GroupedMessage extends Message {
@@ -70,6 +71,8 @@ export type ServerMessage =
   | { type: "voice_ice"; userId: number; candidate: RTCIceCandidateInit; targetUserId: number }
   | { type: "voice_presence_update"; channelId: string; username: string; action: "join" | "leave" }
   | { type: "voice_state"; channels: Record<string, string[]> }
+  | { type: "message_edited"; messageId: number; content: string }
+  | { type: "message_deleted"; messageId: number }
   | { type: "pong" };
 
 export type ClientMessage =
@@ -82,7 +85,9 @@ export type ClientMessage =
   | { type: "voice_leave" }
   | { type: "voice_offer"; targetUserId: number; offer: RTCSessionDescriptionInit }
   | { type: "voice_answer"; targetUserId: number; answer: RTCSessionDescriptionInit }
-  | { type: "voice_ice"; targetUserId: number; candidate: RTCIceCandidateInit };
+  | { type: "voice_ice"; targetUserId: number; candidate: RTCIceCandidateInit }
+  | { type: "edit_message"; messageId: number; content: string }
+  | { type: "delete_message"; messageId: number };
 
 export interface Theme {
   name: string;

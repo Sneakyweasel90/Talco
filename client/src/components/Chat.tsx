@@ -91,7 +91,7 @@ export default function Chat() {
 
   const {
     groupedMessages, typers, hasMore, loadingMore,
-    handleMessage, handleScroll, handleReact, bottomRef, messagesContainerRef,
+    handleMessage, handleScroll, handleReact, handleEdit, handleDelete, bottomRef, messagesContainerRef,
   } = useMessages({ channel, send, currentUserId: user!.id, currentChannelRef, userRef });
 
   const {
@@ -192,6 +192,9 @@ export default function Chat() {
                 onPickerToggle={setPickerMsgId}
                 onReact={handleReact}
                 onReply={setReplyTo}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                currentUserId={user!.id}
                 onUsernameClick={(userId, username, el) => setPopover({ userId, username, el })}
                 resolveNickname={resolve}
               />

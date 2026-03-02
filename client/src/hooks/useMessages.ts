@@ -77,6 +77,16 @@ export function useMessages({
       );
     }
 
+    if (data.type === "message_edited") {
+      setMessages((prev) =>
+        prev.map((m) => m.id === data.messageId ? { ...m, content: data.content, edited_at: new Date().toISOString() } : m)
+      );
+    }
+
+    if (data.type === "message_deleted") {
+      setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+    }
+
     if (data.type === "typing") {
       setTypers((prev) => ({ ...prev, [data.userId]: data.username }));
       clearTimeout(typingTimers.current[data.userId]);
@@ -138,6 +148,20 @@ export function useMessages({
     [send],
   );
 
+  const handleEdit = useCallback(
+    (messageId: number, content: string) => {
+      send({ type: "edit_message", messageId, content });
+    },
+    [send],
+  );
+
+  const handleDelete = useCallback(
+    (messageId: number) => {
+      send({ type: "delete_message", messageId });
+    },
+    [send],
+  );
+
   const groupedMessages: GroupedMessage[] = messages.reduce<GroupedMessage[]>((acc, msg, i) => {
     const prev = messages[i - 1];
     const isGrouped =
@@ -156,6 +180,8 @@ export function useMessages({
     handleMessage,
     handleScroll,
     handleReact,
+    handleEdit,
+    handleDelete,
     bottomRef,
     messagesContainerRef,
   };

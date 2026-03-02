@@ -252,6 +252,32 @@ export async function initWebSocket(server) {
         broadcast(channelId, { type: "reaction_update", messageId, reactions });
       }
 
+      // EDIT message — only allowed by the original author
+      if (msg.type === "edit_message") {
+        const { messageId, content } = msg;
+        if (!messageId || !content?.trim()) return;
+        const { rows } = await db.query(
+          `UPDATE messages SET content = $1, edited_at = NOW()
+           WHERE id = $2 AND user_id = $3
+           RETURNING channel_id`,
+          [content.trim(), messageId, user.id]
+        );
+        if (!rows[0]) return; // not found or not owner
+        broadcast(rows[0].channel_id, { type: "message_edited", messageId, content: content.trim() });
+      }
+
+      // DELETE message — only allowed by the original author
+      if (msg.type === "delete_message") {
+        const { messageId } = msg;
+        if (!messageId) return;
+        const { rows } = await db.query(
+          `DELETE FROM messages WHERE id = $1 AND user_id = $2 RETURNING channel_id`,
+          [messageId, user.id]
+        );
+        if (!rows[0]) return; // not found or not owner
+        broadcast(rows[0].channel_id, { type: "message_deleted", messageId });
+      }
+
       // TYPING
       if (msg.type === "typing") {
         broadcast(msg.channelId, { type: "typing", userId: user.id, username: user.username }, ws);
