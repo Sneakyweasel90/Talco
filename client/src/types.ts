@@ -23,6 +23,9 @@ export interface Message {
   created_at: string;
   reactions: Reaction[];
   decrypted?: boolean;
+  reply_to_id?: number | null;
+  reply_to_username?: string | null;
+  reply_to_content?: string | null;
 }
 
 export interface GroupedMessage extends Message {
@@ -65,14 +68,14 @@ export type ServerMessage =
   | { type: "voice_offer"; userId: number; offer: RTCSessionDescriptionInit; targetUserId: number }
   | { type: "voice_answer"; userId: number; answer: RTCSessionDescriptionInit; targetUserId: number }
   | { type: "voice_ice"; userId: number; candidate: RTCIceCandidateInit; targetUserId: number }
-  | { type: "pong" }
   | { type: "voice_presence_update"; channelId: string; username: string; action: "join" | "leave" }
-  | { type: "voice_state"; channels: Record<string, string[]> };
+  | { type: "voice_state"; channels: Record<string, string[]> }
+  | { type: "pong" };
 
 export type ClientMessage =
   | { type: "join"; channelId: string }
   | { type: "load_more"; channelId: string; beforeId: number }
-  | { type: "message"; channelId: string; content: string }
+  | { type: "message"; channelId: string; content: string; replyToId?: number | null }
   | { type: "typing"; channelId: string }
   | { type: "react"; messageId: number; emoji: string }
   | { type: "voice_join"; channelId: string }

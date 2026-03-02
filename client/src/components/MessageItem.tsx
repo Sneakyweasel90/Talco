@@ -5,6 +5,44 @@ import Avatar from "./Avatar";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
+// ── URL auto-linking ──────────────────────────────────────────────────────────
+
+const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
+
+function renderContent(text: string, linkColor: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  URL_REGEX.lastIndex = 0;
+
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    if (match.index > last) {
+      parts.push(text.slice(last, match.index));
+    }
+    const url = match[0];
+    parts.push(
+      <a
+        key={match.index}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          color: linkColor,
+          textDecoration: "underline",
+          textUnderlineOffset: "2px",
+          wordBreak: "break-all",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url}
+      </a>
+    );
+    last = match.index + url.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts;
+}
+
 // ── EmojiPicker ────────────────────────────────────────────────────────────────
 
 interface EmojiPickerProps {
@@ -101,13 +139,7 @@ function ReactionPills({ reactions, messageId, currentUsername, onReact }: React
             }}
           >
             <span>{r.emoji}</span>
-            <span
-              style={{
-                color: reacted ? theme.primary : theme.textDim,
-                fontSize: "0.7rem",
-                fontFamily: "'Share Tech Mono', monospace",
-              }}
-            >
+            <span style={{ color: reacted ? theme.primary : theme.textDim, fontSize: "0.7rem", fontFamily: "'Share Tech Mono', monospace" }}>
               {r.count}
             </span>
           </button>
@@ -127,6 +159,7 @@ interface MessageItemProps {
   onHover: (id: number | null) => void;
   onPickerToggle: (id: number | null) => void;
   onReact: (messageId: number, emoji: string) => void;
+  onReply: (msg: GroupedMessage) => void;
   onUsernameClick: (userId: number, username: string, el: HTMLElement) => void;
   resolveNickname: (userId: number, username: string) => string;
 }
@@ -139,10 +172,13 @@ export default function MessageItem({
   onHover,
   onPickerToggle,
   onReact,
+  onReply,
   onUsernameClick,
   resolveNickname,
 }: MessageItemProps) {
   const { theme } = useTheme();
+  const isHovered = hoveredMsgId === msg.id;
+  const isPickerOpen = pickerMsgId === msg.id;
 
   return (
     <div
@@ -153,7 +189,7 @@ export default function MessageItem({
         borderRadius: "3px",
       }}
       onMouseEnter={() => onHover(msg.id)}
-      onMouseLeave={() => { if (pickerMsgId !== msg.id) onHover(null); }}
+      onMouseLeave={() => { if (!isPickerOpen) onHover(null); }}
     >
       {/* Avatar column */}
       <div style={{ width: "34px", flexShrink: 0, display: "flex", alignItems: "flex-start", paddingTop: "2px" }}>
@@ -161,17 +197,12 @@ export default function MessageItem({
       </div>
 
       {/* Message body */}
-      <div style={{ flex: 1, minWidth: 0, paddingRight: "2.5rem", position: "relative" }}>
+      <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+        {/* Header row */}
         {!msg.isGrouped && (
           <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginBottom: "0.1rem" }}>
             <span
-              style={{
-                fontFamily: "'Rajdhani', sans-serif",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                color: theme.primary,
-                cursor: "pointer",
-              }}
+              style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: theme.primary, cursor: "pointer" }}
               onClick={(e) => onUsernameClick(msg.user_id, msg.raw_username || msg.username, e.currentTarget as HTMLElement)}
               title="Click to set local nickname"
             >
@@ -183,10 +214,33 @@ export default function MessageItem({
           </div>
         )}
 
-        <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text }}>
-          {msg.content}
+        {/* Reply quote block */}
+        {msg.reply_to_username && msg.reply_to_content && (
+          <div style={{
+            borderLeft: `2px solid ${theme.primaryDim}`,
+            paddingLeft: "8px",
+            marginBottom: "4px",
+            opacity: 0.7,
+            fontSize: "0.8rem",
+            fontFamily: "'Share Tech Mono', monospace",
+          }}>
+            <span style={{ color: theme.primary, fontWeight: 700, marginRight: "6px" }}>
+              {msg.reply_to_username}
+            </span>
+            <span style={{ color: theme.textDim }}>
+              {msg.reply_to_content.length > 80
+                ? msg.reply_to_content.slice(0, 80) + "…"
+                : msg.reply_to_content}
+            </span>
+          </div>
+        )}
+
+        {/* Message content with hyperlinks */}
+        <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text, paddingRight: "4.5rem" }}>
+          {renderContent(msg.content, theme.primary)}
         </div>
 
+        {/* Reactions + action buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
           <ReactionPills
             reactions={msg.reactions || []}
@@ -195,11 +249,13 @@ export default function MessageItem({
             onReact={onReact}
           />
 
-          {(hoveredMsgId === msg.id || pickerMsgId === msg.id) && (
-            <div style={{ position: "relative" }}>
+          {(isHovered || isPickerOpen) && (
+            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+              {/* Reply button */}
               <button
                 style={{
-                  border: "1px solid",
+                  border: `1px solid ${theme.border}`,
+                  background: "transparent",
                   cursor: "pointer",
                   fontSize: "0.7rem",
                   padding: "1px 6px",
@@ -208,22 +264,51 @@ export default function MessageItem({
                   letterSpacing: "0.05em",
                   transition: "all 0.15s",
                   lineHeight: "1.6",
-                  color: pickerMsgId === msg.id ? theme.primary : theme.textDim,
-                  borderColor: pickerMsgId === msg.id ? theme.primaryDim : theme.border,
-                  background: pickerMsgId === msg.id ? theme.primaryGlow : "transparent",
+                  color: theme.textDim,
                 } as React.CSSProperties}
-                onClick={() => onPickerToggle(pickerMsgId === msg.id ? null : msg.id)}
-                title="Add reaction"
+                onClick={() => onReply(msg)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = theme.primary;
+                  e.currentTarget.style.borderColor = theme.primaryDim;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = theme.textDim;
+                  e.currentTarget.style.borderColor = theme.border;
+                }}
+                title="Reply"
               >
-                + 😊
+                ↩ REPLY
               </button>
-              {pickerMsgId === msg.id && (
-                <EmojiPicker
-                  messageId={msg.id}
-                  onReact={onReact}
-                  onClose={() => { onPickerToggle(null); onHover(null); }}
-                />
-              )}
+
+              {/* React button */}
+              <div style={{ position: "relative" }}>
+                <button
+                  style={{
+                    border: `1px solid ${isPickerOpen ? theme.primaryDim : theme.border}`,
+                    cursor: "pointer",
+                    fontSize: "0.7rem",
+                    padding: "1px 6px",
+                    borderRadius: "10px",
+                    fontFamily: "'Share Tech Mono', monospace",
+                    letterSpacing: "0.05em",
+                    transition: "all 0.15s",
+                    lineHeight: "1.6",
+                    color: isPickerOpen ? theme.primary : theme.textDim,
+                    background: isPickerOpen ? theme.primaryGlow : "transparent",
+                  } as React.CSSProperties}
+                  onClick={() => onPickerToggle(isPickerOpen ? null : msg.id)}
+                  title="Add reaction"
+                >
+                  + 😊
+                </button>
+                {isPickerOpen && (
+                  <EmojiPicker
+                    messageId={msg.id}
+                    onReact={onReact}
+                    onClose={() => { onPickerToggle(null); onHover(null); }}
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>

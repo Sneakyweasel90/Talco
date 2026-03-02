@@ -69,6 +69,7 @@ export async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT;`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(50);`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;`);
+  await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;`);
 
   await pool.query(`
     INSERT INTO channels (name, type) VALUES

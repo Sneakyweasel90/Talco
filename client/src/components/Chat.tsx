@@ -30,6 +30,7 @@ export default function Chat() {
   const [showSearch, setShowSearch] = useState(false);
   const [pickerMsgId, setPickerMsgId] = useState<number | null>(null);
   const [hoveredMsgId, setHoveredMsgId] = useState<number | null>(null);
+  const [replyTo, setReplyTo] = useState<import("../types").GroupedMessage | null>(null);
   const [popover, setPopover] = useState<{ userId: number; username: string; el: HTMLElement } | null>(null);
 
   const currentChannelRef = useRef(channel);
@@ -190,6 +191,7 @@ export default function Chat() {
                 onHover={setHoveredMsgId}
                 onPickerToggle={setPickerMsgId}
                 onReact={handleReact}
+                onReply={setReplyTo}
                 onUsernameClick={(userId, username, el) => setPopover({ userId, username, el })}
                 resolveNickname={resolve}
               />
@@ -211,7 +213,7 @@ export default function Chat() {
               setSelfVolume={setSelfVolume}
             />
           )}
-          <MessageInput send={send} channel={channel} />
+          <MessageInput send={send} channel={channel} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
         </div>
       </div>
 

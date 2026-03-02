@@ -144,8 +144,11 @@ export async function initWebSocket(server) {
         ws.channels.add(channelId);
 
         const { rows } = await db.query(
-          `SELECT m.*, u.username AS raw_username FROM messages m
+          `SELECT m.*, u.username AS raw_username,
+             rm.username AS reply_to_username, rm.content AS reply_to_content
+           FROM messages m
            JOIN users u ON m.user_id = u.id
+           LEFT JOIN messages rm ON m.reply_to_id = rm.id
            WHERE m.channel_id = $1
            ORDER BY m.id DESC LIMIT 50`,
           [channelId]
@@ -170,8 +173,11 @@ export async function initWebSocket(server) {
         const { channelId, beforeId } = msg;
         if (!channelId || !beforeId) return;
         const { rows } = await db.query(
-          `SELECT m.*, u.username AS raw_username FROM messages m
+          `SELECT m.*, u.username AS raw_username,
+             rm.username AS reply_to_username, rm.content AS reply_to_content
+           FROM messages m
            JOIN users u ON m.user_id = u.id
+           LEFT JOIN messages rm ON m.reply_to_id = rm.id
            WHERE m.channel_id = $1 AND m.id < $2
            ORDER BY m.id DESC LIMIT 50`,
           [channelId, beforeId]
@@ -191,7 +197,7 @@ export async function initWebSocket(server) {
           ws.send(JSON.stringify({ type: "error", message: "Rate limited" }));
           return;
         }
-        const { channelId, content } = msg;
+        const { channelId, content, replyToId } = msg;
         if (!content?.trim()) return;
         const { rows: uRows } = await db.query(
           `SELECT COALESCE(nickname, username) AS display_name FROM users WHERE id = $1`,
@@ -199,12 +205,18 @@ export async function initWebSocket(server) {
         );
         const displayName = uRows[0]?.display_name || user.username;
         const { rows } = await db.query(
-          `INSERT INTO messages (channel_id, user_id, username, content)
-           VALUES ($1, $2, $3, $4) RETURNING *`,
-          [channelId, user.id, displayName, content.trim()]
+          `INSERT INTO messages (channel_id, user_id, username, content, reply_to_id)
+           VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+          [channelId, user.id, displayName, content.trim(), replyToId || null]
         );
         const { rows: uRaw } = await db.query(`SELECT username FROM users WHERE id = $1`, [user.id]);
-        broadcast(channelId, { type: "message", message: { ...rows[0], raw_username: uRaw[0]?.username || user.username, reactions: [] } });
+        // Fetch reply preview if this is a reply
+        let reply_to_username = null, reply_to_content = null;
+        if (replyToId) {
+          const { rows: replyRows } = await db.query(`SELECT username, content FROM messages WHERE id = $1`, [replyToId]);
+          if (replyRows[0]) { reply_to_username = replyRows[0].username; reply_to_content = replyRows[0].content; }
+        }
+        broadcast(channelId, { type: "message", message: { ...rows[0], raw_username: uRaw[0]?.username || user.username, reactions: [], reply_to_username, reply_to_content } });
       }
 
       // REACT
