@@ -17,7 +17,7 @@ interface Props {
     customRoleName: string | null;
   };
   onClose: () => void;
-  onNicknameChange: (nickname: string | null) => void; 
+  onNicknameChange: (nickname: string | null) => void;
   onAvatarChange: (avatar: string | null) => void;
 }
 
@@ -28,6 +28,7 @@ interface Props {
 function AdminPanel({ token, currentUserId }: { token: string; currentUserId: number }) {
   const { theme } = useTheme();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [ownerId, setOwnerId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [customNames, setCustomNames] = useState<Record<number, string>>({});
@@ -39,9 +40,10 @@ function AdminPanel({ token, currentUserId }: { token: string; currentUserId: nu
       const { data } = await axios.get(`${config.HTTP}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUsers(data);
+      setUsers(data.users);
+      setOwnerId(data.ownerId);
       const names: Record<number, string> = {};
-      for (const u of data) {
+      for (const u of data.users) {
         if (u.role === "custom") names[u.id] = u.custom_role_name || "";
       }
       setCustomNames(names);
@@ -116,6 +118,9 @@ function AdminPanel({ token, currentUserId }: { token: string; currentUserId: nu
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         {users.map(u => {
           const isSelf = u.id === currentUserId;
+          const isOwner = u.id === ownerId;
+          const isAdmin = u.role === "admin";
+          const isProtected = isOwner || (isAdmin && currentUserId !== ownerId);
           const isBanned = !!u.banned_at;
           return (
             <div
@@ -138,12 +143,20 @@ function AdminPanel({ token, currentUserId }: { token: string; currentUserId: nu
                 <span style={{ color: roleColor(u.role), fontSize: "0.65rem", marginLeft: "auto", fontFamily: "'Share Tech Mono', monospace" }}>
                   {u.role === "custom" ? (u.custom_role_name || "CUSTOM") : u.role.toUpperCase()}
                 </span>
+                {isOwner && <span style={{ color: theme.error, fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace", border: `1px solid ${theme.error}`, borderRadius: "2px", padding: "1px 4px" }}>OWNER</span>}
                 {isBanned && <span style={{ color: theme.error, fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace" }}>BANNED</span>}
                 {isSelf && <span style={{ color: theme.textDim, fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace" }}>(you)</span>}
               </div>
 
-              {/* Role controls — not for self */}
-              {!isSelf && (
+              {/* Protected notice */}
+              {!isSelf && isProtected && (
+                <div style={{ fontSize: "0.6rem", color: theme.textDim, fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>
+                  {isOwner ? "server owner — cannot be modified" : "admin — only owner can modify"}
+                </div>
+              )}
+
+              {/* Role controls — not for self or protected users */}
+              {!isSelf && !isProtected && (
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
                   {/* Role selector */}
                   <select
