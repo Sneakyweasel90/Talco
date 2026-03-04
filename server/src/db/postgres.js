@@ -75,6 +75,25 @@ export async function initDB() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_role_name VARCHAR(50);`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ;`);
 
+  // DM tables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS dm_conversations (
+      id SERIAL PRIMARY KEY,
+      user1_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      user2_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(user1_id, user2_id)
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS dm_last_read (
+      user_id INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+      dm_channel_id VARCHAR(100) NOT NULL,
+      last_read_at TIMESTAMPTZ DEFAULT NOW(),
+      PRIMARY KEY (user_id, dm_channel_id)
+    );
+  `);
+
   // Messages table additions
   await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;`);
   await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;`);

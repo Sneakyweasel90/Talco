@@ -5,15 +5,16 @@ import Avatar from "./Avatar";
 
 interface Props {
   userId: number;
-  username: string;       // server display name (their nickname or username)
+  username: string;
   isSelf: boolean;
   onClose: () => void;
   anchorEl: HTMLElement;
+  onOpenDM?: (userId: number) => void;
 }
 
-export default function UserPopover({ userId, username, isSelf, onClose, anchorEl }: Props) {
+export default function UserPopover({ userId, username, isSelf, onClose, anchorEl, onOpenDM }: Props) {
   const { theme } = useTheme();
-  const { resolve, setLocalNickname, nicknames } = useLocalNicknames();
+  const { setLocalNickname, nicknames } = useLocalNicknames();
   const ref = useRef<HTMLDivElement>(null);
 
   const existing = nicknames[userId] || "";
@@ -21,10 +22,9 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
-  // Position the popover near the clicked element
   const rect = anchorEl.getBoundingClientRect();
-  const top = rect.bottom + 6;
-  const left = rect.left;
+  const top = Math.min(rect.bottom + 6, window.innerHeight - 220);
+  const left = Math.min(rect.left, window.innerWidth - 240);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -48,8 +48,6 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
     }
   };
 
-  // username prop is always the raw login name
-  // displayedAs = local nickname > their server display name > raw login name
   const displayedAs = nicknames[userId] || username;
 
   return (
@@ -72,13 +70,38 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
       {/* User header */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.75rem" }}>
         <Avatar username={displayedAs} size={36} />
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ color: theme.primary, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>
             {displayedAs}
           </div>
           <div style={{ color: theme.textDim, fontSize: "0.65rem", opacity: 0.7 }}>@{username}</div>
         </div>
       </div>
+
+      {/* DM button — not for self */}
+      {!isSelf && onOpenDM && (
+        <button
+          onClick={() => onOpenDM(userId)}
+          style={{
+            width: "100%",
+            background: theme.primaryGlow,
+            border: `1px solid ${theme.primaryDim}`,
+            borderRadius: "2px",
+            color: theme.primary,
+            fontSize: "0.65rem",
+            fontFamily: "'Share Tech Mono', monospace",
+            letterSpacing: "0.1em",
+            padding: "0.4rem",
+            cursor: "pointer",
+            marginBottom: "0.75rem",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = theme.primaryDim; }}
+          onMouseLeave={e => { e.currentTarget.style.background = theme.primaryGlow; }}
+        >
+          ◈ MESSAGE
+        </button>
+      )}
 
       {/* Local nickname field — not shown for self */}
       {!isSelf && (
@@ -115,7 +138,7 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
           </div>
           {existing && (
             <button
-              onClick={() => { setValue(""); }}
+              onClick={() => setValue("")}
               style={{
                 background: "none", border: "none", cursor: "pointer", color: theme.textDim,
                 fontSize: "0.6rem", marginTop: "0.3rem", fontFamily: "'Share Tech Mono', monospace",
@@ -132,6 +155,7 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
           )}
         </>
       )}
+
       {isSelf && (
         <div style={{ color: theme.textDim, fontSize: "0.7rem", opacity: 0.6 }}>
           That's you! Edit your name in account settings.

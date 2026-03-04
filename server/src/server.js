@@ -10,6 +10,7 @@ import usersRoutes from "./routes/users.routes.js";
 import channelsRoutes from "./routes/channels.routes.js";
 import searchRoutes from "./routes/search.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import dmRoutes from "./routes/dm.routes.js";
 import { initWebSocket } from "./websocket/gateway.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
 
@@ -42,6 +43,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/channels", channelsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/dm", dmRoutes);
 
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 

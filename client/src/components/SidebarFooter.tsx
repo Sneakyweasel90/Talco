@@ -3,9 +3,10 @@ import { useTheme } from "../context/ThemeContext";
 import Avatar from "./Avatar";
 import ThemePicker from "./ThemePicker";
 import AccountSettings from "./AccountSettings";
-import type { OnlineUser } from "../types";
+import DMList from "./DMList";
+import type { OnlineUser, DMConversation, UserRole } from "../types";
 
-interface SidebarFooterProps { 
+interface SidebarFooterProps {
   username: string;
   nickname: string | null;
   avatar: string | null;
@@ -17,11 +18,21 @@ interface SidebarFooterProps {
   onNicknameChange: (nickname: string | null) => void;
   onAvatarChange: (avatar: string | null) => void;
   onLogout: () => void;
+  // DM props
+  dmConversations: DMConversation[];
+  dmLoading: boolean;
+  activeDMChannel: string | null;
+  totalUnread: number;
+  activeTab: "channels" | "dms";
+  onTabChange: (tab: "channels" | "dms") => void;
+  onSelectDM: (conv: DMConversation) => void;
 }
 
 export default function SidebarFooter({
   username, nickname, avatar, userId, token, role, customRoleName,
   onlineUsers, onNicknameChange, onAvatarChange, onLogout,
+  dmConversations, dmLoading, activeDMChannel, totalUnread,
+  activeTab, onTabChange, onSelectDM,
 }: SidebarFooterProps) {
   const { theme } = useTheme();
   const [showOnline, setShowOnline] = useState(false);
@@ -30,54 +41,114 @@ export default function SidebarFooter({
 
   return (
     <>
-      {/* Online users */}
-      <div
-        style={{
-          padding: "0.75rem 1rem 0.3rem", display: "flex", alignItems: "center",
-          gap: "0.5rem", cursor: "pointer", borderTop: `1px solid ${theme.border}`,
-          marginTop: "auto", color: theme.textDim,
-        }}
-        onClick={() => setShowOnline(s => !s)}
-      >
-        <span style={{ fontSize: "0.62rem", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.08em", color: theme.textDim }}>
-          // ONLINE
-        </span>
-        <span style={{
-          borderRadius: "8px", padding: "0 5px", fontSize: "0.6rem",
-          fontFamily: "'Share Tech Mono', monospace",
-          background: theme.primaryGlow, border: `1px solid ${theme.primaryDim}`, color: theme.primary,
-        }}>
-          {onlineUsers.length}
-        </span>
-        <span style={{ marginLeft: "auto", fontSize: "0.6rem" }}>{showOnline ? "▲" : "▼"}</span>
+      {/* ── Tab switcher ── */}
+      <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}`, borderTop: `1px solid ${theme.border}`, flexShrink: 0 }}>
+        {(["channels", "dms"] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => onTabChange(tab)}
+            style={{
+              flex: 1,
+              background: "none",
+              border: "none",
+              borderBottom: `2px solid ${activeTab === tab ? theme.primary : "transparent"}`,
+              color: activeTab === tab ? theme.primary : theme.textDim,
+              fontSize: "0.6rem",
+              fontFamily: "'Share Tech Mono', monospace",
+              letterSpacing: "0.1em",
+              padding: "0.5rem 0.25rem",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              position: "relative",
+            }}
+          >
+            {tab === "channels" ? "// CHANNELS" : "// DMs"}
+            {tab === "dms" && totalUnread > 0 && (
+              <span style={{
+                position: "absolute",
+                top: "4px",
+                right: "8px",
+                background: theme.primary,
+                color: theme.background,
+                borderRadius: "8px",
+                padding: "0 4px",
+                fontSize: "0.55rem",
+                fontFamily: "'Share Tech Mono', monospace",
+                fontWeight: 700,
+                minWidth: "14px",
+                textAlign: "center",
+              }}>
+                {totalUnread > 99 ? "99+" : totalUnread}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {showOnline && (
-        <div style={{ padding: "0.25rem 0 0.5rem" }}>
-          {onlineUsers.map(u => (
-            <div key={u.id} style={{ padding: "0.3rem 1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <div style={{ position: "relative" }}>
-                <Avatar username={u.username} size={24} />
-                <div style={{
-                  position: "absolute", bottom: -1, right: -1,
-                  width: "7px", height: "7px", borderRadius: "50%",
-                  background: "#4ade80", boxShadow: "0 0 4px #4ade80",
-                }} />
-              </div>
-              <span style={{ fontSize: "0.85rem", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, color: theme.text }}>
-                {u.username}
-              </span>
-              {u.username === username && (
-                <span style={{ fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", opacity: 0.5, color: theme.textDim }}>
-                  (you)
-                </span>
-              )}
-            </div>
-          ))}
+      {/* ── DM list (only shown in DMs tab) ── */}
+      {activeTab === "dms" && (
+        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+          <DMList
+            conversations={dmConversations}
+            activeDMChannel={activeDMChannel}
+            onlineUsers={onlineUsers}
+            onSelectDM={onSelectDM}
+            loading={dmLoading}
+          />
         </div>
       )}
 
-      {/* Themes button */}
+      {/* ── Online users (only in channels tab) ── */}
+      {activeTab === "channels" && (
+        <>
+          <div
+            style={{
+              padding: "0.75rem 1rem 0.3rem", display: "flex", alignItems: "center",
+              gap: "0.5rem", cursor: "pointer", color: theme.textDim,
+            }}
+            onClick={() => setShowOnline(s => !s)}
+          >
+            <span style={{ fontSize: "0.62rem", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.08em", color: theme.textDim }}>
+              // ONLINE
+            </span>
+            <span style={{
+              borderRadius: "8px", padding: "0 5px", fontSize: "0.6rem",
+              fontFamily: "'Share Tech Mono', monospace",
+              background: theme.primaryGlow, border: `1px solid ${theme.primaryDim}`, color: theme.primary,
+            }}>
+              {onlineUsers.length}
+            </span>
+            <span style={{ marginLeft: "auto", fontSize: "0.6rem" }}>{showOnline ? "▲" : "▼"}</span>
+          </div>
+
+          {showOnline && (
+            <div style={{ padding: "0.25rem 0 0.5rem" }}>
+              {onlineUsers.map(u => (
+                <div key={u.id} style={{ padding: "0.3rem 1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <div style={{ position: "relative" }}>
+                    <Avatar username={u.username} size={24} />
+                    <div style={{
+                      position: "absolute", bottom: -1, right: -1,
+                      width: "7px", height: "7px", borderRadius: "50%",
+                      background: "#4ade80", boxShadow: "0 0 4px #4ade80",
+                    }} />
+                  </div>
+                  <span style={{ fontSize: "0.85rem", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, color: theme.text }}>
+                    {u.username}
+                  </span>
+                  {u.username === username && (
+                    <span style={{ fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", opacity: 0.5, color: theme.textDim }}>
+                      (you)
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Themes button ── */}
       <div
         style={{
           margin: "0.5rem", padding: "0.5rem 1rem", cursor: "pointer",
@@ -91,8 +162,8 @@ export default function SidebarFooter({
         </span>
       </div>
 
-      {/* User footer */}
-      <div style={{ padding: "0.75rem 1rem", borderTop: `1px solid ${theme.border}`, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      {/* ── User footer ── */}
+      <div style={{ padding: "0.75rem 1rem", borderTop: `1px solid ${theme.border}`, display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
         <div
           onClick={() => setShowSettings(true)}
           style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1, cursor: "pointer", minWidth: 0 }}
@@ -126,7 +197,7 @@ export default function SidebarFooter({
       {showThemes && <ThemePicker onClose={() => setShowThemes(false)} />}
       {showSettings && (
         <AccountSettings
-          user={{ id: userId, username, nickname, avatar, token, role: role as "admin" | "user" | "custom", customRoleName }}
+          user={{ id: userId, username, nickname, avatar, token, role: role as UserRole, customRoleName }}
           onClose={() => setShowSettings(false)}
           onNicknameChange={onNicknameChange}
           onAvatarChange={onAvatarChange}

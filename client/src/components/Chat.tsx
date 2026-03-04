@@ -15,8 +15,10 @@ import UserPopover from "./UserPopover";
 import MessageItem from "./MessageItem";
 import ResizableSidebar from "./ResizableSidebar";
 import axios from "axios";
+import { useDMs } from "../hooks/useDMs";
+import DMHeader from "./DMHeader";
 import config from "../config";
-import type { OnlineUser } from "../types";
+import type { OnlineUser, DMConversation } from "../types";
 
 export default function Chat() {
   const { user, logout, updateNickname, updateAvatar } = useAuth();
@@ -43,6 +45,10 @@ export default function Chat() {
   const [replyTo, setReplyTo] = useState<import("../types").GroupedMessage | null>(null);
   const [popover, setPopover] = useState<{ userId: number; username: string; el: HTMLElement } | null>(null);
   const [avatarMap, setAvatarMap] = useState<Record<number, string | null>>({});
+  const [activeTab, setActiveTab] = useState<"channels" | "dms">("channels");
+  const [activeDMConv, setActiveDMConv] = useState<DMConversation | null>(null);
+
+  const { conversations: dmConversations, dmLoading, openDM, markRead, onDMMessage, totalUnread } = useDMs(user!.token, user!.id);
 
   const currentChannelRef = useRef(channel);
   useEffect(() => { currentChannelRef.current = channel; }, [channel]);
@@ -105,7 +111,13 @@ export default function Chat() {
         handleVoiceMessage(data);
       }
       else if (data.type === "presence") setOnlineUsers(data.users);
-      else handleMessage(data);
+      else {
+        // If it's a DM message, update DM conversation list
+        if (data.type === "message" && typeof data.message?.channel_id === "string" && data.message.channel_id.startsWith("dm:")) {
+          onDMMessage(data.message.channel_id, data.message.content, data.message.user_id, data.message.created_at);
+        }
+        handleMessage(data);
+      }
     },
     () => rejoinVoiceRef.current(),
   );
@@ -136,6 +148,23 @@ export default function Chat() {
   const handleJumpTo = useCallback((channelId: string) => {
     setChannel(channelId);
   }, []);
+
+  const handleOpenDM = useCallback(async (userId: number) => {
+    const channelId = await openDM(userId);
+    if (!channelId) return;
+    // Find the conversation and switch to DM tab
+    setActiveTab("dms");
+    // Mark read immediately on open
+    markRead(channelId);
+    // Join the DM channel via WS
+    send({ type: "join", channelId });
+  }, [openDM, markRead, send]);
+
+  const handleSelectDM = useCallback((conv: DMConversation) => {
+    setActiveDMConv(conv);
+    markRead(conv.channelId);
+    send({ type: "join", channelId: conv.channelId });
+  }, [markRead, send]);
 
   return (
     <div style={{
@@ -171,26 +200,40 @@ export default function Chat() {
               if (user?.id) setAvatarMap(prev => ({ ...prev, [user.id]: avatar }));
             }}
             voiceOccupancy={voiceOccupancy}
+            dmConversations={dmConversations}
+            dmLoading={false}
+            activeDMChannel={activeDMConv?.channelId ?? null}
+            totalUnread={totalUnread}
+            activeTab={activeTab}
+            onTabChange={(tab) => setActiveTab(tab)}
+            onSelectDM={(conv) => {
+              setActiveDMConv(conv);
+              handleSelectDM(conv);
+            }}
           />
         </ResizableSidebar>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-          {/* Channel header */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: "0.5rem",
-            padding: "0.75rem 1.5rem", borderBottom: "1px solid",
-            background: theme.surface, borderColor: theme.border,
-          }}>
-            <span style={{ color: theme.textDim }}>#</span>
-            <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "1rem", color: theme.primary }}>
-              {channel}
-            </span>
-            <div style={{ flex: 1, height: "1px", background: `linear-gradient(90deg, ${theme.border}, transparent)` }} />
-            <span style={{ fontSize: "0.72rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim, flexShrink: 0 }}>
-              <span style={{ color: "#4ade80", marginRight: "4px" }}>●</span>
-              {onlineUsers.length} online
-            </span>
-          </div>
+          {/* Header — DM or channel */}
+          {activeTab === "dms" && activeDMConv ? (
+            <DMHeader conversation={activeDMConv} onlineUsers={onlineUsers} />
+          ) : (
+            <div style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              padding: "0.75rem 1.5rem", borderBottom: "1px solid",
+              background: theme.surface, borderColor: theme.border, flexShrink: 0,
+            }}>
+              <span style={{ color: theme.textDim }}>#</span>
+              <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "1rem", color: theme.primary }}>
+                {channel}
+              </span>
+              <div style={{ flex: 1, height: "1px", background: `linear-gradient(90deg, ${theme.border}, transparent)` }} />
+              <span style={{ fontSize: "0.72rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim, flexShrink: 0 }}>
+                <span style={{ color: "#4ade80", marginRight: "4px" }}>●</span>
+                {onlineUsers.length} online
+              </span>
+            </div>
+          )}
 
           {/* Messages */}
           <div ref={messagesContainerRef} style={{ flex: 1, overflowY: "auto", padding: "0 1rem 0.5rem" }} onScroll={handleScroll}>
@@ -202,7 +245,9 @@ export default function Chat() {
               )}
               {!hasMore && groupedMessages.length > 0 && (
                 <span style={{ color: theme.textDim, fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", opacity: 0.4 }}>
-                  — BEGINNING OF #{channel} —
+                  {activeTab === "dms" && activeDMConv
+                    ? `— START OF DM WITH ${(activeDMConv.nickname || activeDMConv.username).toUpperCase()} —`
+                    : `— BEGINNING OF #${channel} —`}
                 </span>
               )}
             </div>
@@ -243,7 +288,7 @@ export default function Chat() {
               setSelfVolume={setSelfVolume}
             />
           )}
-          <MessageInput send={send} channel={channel} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
+          <MessageInput send={send} channel={activeTab === "dms" && activeDMConv ? activeDMConv.channelId : channel} replyTo={replyTo} onCancelReply={() => setReplyTo(null)} />
         </div>
       </div>
 
@@ -254,6 +299,7 @@ export default function Chat() {
           isSelf={popover.userId === user!.id}
           anchorEl={popover.el}
           onClose={() => setPopover(null)}
+          onOpenDM={(userId) => { setPopover(null); handleOpenDM(userId); }}
         />
       )}
 

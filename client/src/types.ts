@@ -120,3 +120,15 @@ export interface Theme {
   error: string;
   gridColor: string;
 }
+
+export interface DMConversation {
+  id: number;
+  other_user_id: number;
+  username: string;
+  nickname: string | null;
+  avatar: string | null;
+  channelId: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+}
