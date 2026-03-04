@@ -216,7 +216,9 @@ export async function initWebSocket(server) {
           const { rows: replyRows } = await db.query(`SELECT username, content FROM messages WHERE id = $1`, [replyToId]);
           if (replyRows[0]) { reply_to_username = replyRows[0].username; reply_to_content = replyRows[0].content; }
         }
-        broadcast(channelId, { type: "message", message: { ...rows[0], raw_username: uRaw[0]?.username || user.username, user_role: user.role || 'user', user_custom_role_name: uRaw[0]?.custom_role_name || null, reactions: [], reply_to_username, reply_to_content } });
+        const outMsg = { type: "message", message: { ...rows[0], raw_username: uRaw[0]?.username || user.username, user_role: user.role || 'user', user_custom_role_name: uRaw[0]?.custom_role_name || null, reactions: [], reply_to_username, reply_to_content } };
+        if (channelId.startsWith("dm:")) broadcastDM(channelId, outMsg, wss);
+        else broadcast(channelId, outMsg);
       }
 
       // REACT
@@ -312,6 +314,12 @@ export async function initWebSocket(server) {
       }
 
       // PING
+      // AVATAR UPDATE — client tells server their avatar changed; server broadcasts to all
+      if (msg.type === "avatar_update") {
+        const { avatar } = msg;
+        broadcastAll(wss, { type: "avatar_update", userId: user.id, avatar: avatar || null });
+      }
+
       if (msg.type === "ping") {
         ws.send(JSON.stringify({ type: "pong" }));
       }

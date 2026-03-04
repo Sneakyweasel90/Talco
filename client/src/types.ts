@@ -90,7 +90,8 @@ export type ServerMessage =
   | { type: "voice_state"; channels: Record<string, string[]> }
   | { type: "message_edited"; messageId: number; content: string }
   | { type: "message_deleted"; messageId: number }
-  | { type: "pong" };
+  | { type: "pong" }
+  | { type: "avatar_update"; userId: number; avatar: string | null };
 
 export type ClientMessage =
   | { type: "join"; channelId: string }

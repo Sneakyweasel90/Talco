@@ -111,6 +111,9 @@ export default function Chat() {
         handleVoiceMessage(data);
       }
       else if (data.type === "presence") setOnlineUsers(data.users);
+      else if (data.type === "avatar_update") {
+        setAvatarMap(prev => ({ ...prev, [data.userId]: data.avatar }));
+      }
       else {
         // If it's a DM message, update DM conversation list
         if (data.type === "message" && typeof data.message?.channel_id === "string" && data.message.channel_id.startsWith("dm:")) {
@@ -152,19 +155,18 @@ export default function Chat() {
   const handleOpenDM = useCallback(async (userId: number) => {
     const channelId = await openDM(userId);
     if (!channelId) return;
-    // Find the conversation and switch to DM tab
     setActiveTab("dms");
-    // Mark read immediately on open
     markRead(channelId);
-    // Join the DM channel via WS
+    currentChannelRef.current = channelId;
     send({ type: "join", channelId });
-  }, [openDM, markRead, send]);
+  }, [openDM, markRead, send, currentChannelRef]);
 
   const handleSelectDM = useCallback((conv: DMConversation) => {
     setActiveDMConv(conv);
     markRead(conv.channelId);
+    currentChannelRef.current = conv.channelId;
     send({ type: "join", channelId: conv.channelId });
-  }, [markRead, send]);
+  }, [markRead, send, currentChannelRef]);
 
   return (
     <div style={{
@@ -205,7 +207,10 @@ export default function Chat() {
             activeDMChannel={activeDMConv?.channelId ?? null}
             totalUnread={totalUnread}
             activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab)}
+            onTabChange={(tab) => {
+              setActiveTab(tab);
+              if (tab === "channels") currentChannelRef.current = channel;
+            }}
             onSelectDM={(conv) => {
               setActiveDMConv(conv);
               handleSelectDM(conv);
