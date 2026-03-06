@@ -28,7 +28,7 @@ build-linux:
     - npm install
     - npm run build
     - npx electron-builder --linux
-  artifacts:
+  artifacts: 
     paths:
       - client/dist_electron/*.AppImage
     expire_in: 1 hour
