@@ -86,7 +86,14 @@ export function useWebSocket(
     if (ws.current?.readyState === WebSocket.OPEN) {
       doSend();
     } else {
-      ws.current?.addEventListener("open", doSend, { once: true });
+      const interval = setInterval(() => {
+        if (ws.current?.readyState === WebSocket.OPEN) {
+          clearInterval(interval);
+          ws.current.send(JSON.stringify(data));
+        }
+      }, 50);
+      // Safety cleanup after 5s
+      setTimeout(() => clearInterval(interval), 5000);
     }
   }, []);
 

@@ -107,7 +107,7 @@ export function useMessages({
     setHasMore(false);
     setOldestId(null);
     jumpToBottomRef.current = true;
-    const t = setTimeout(() => send({ type: "join", channelId: channel }), 100);
+    const t = setTimeout(() => send({ type: "join", channelId: channel }), 300);
     return () => clearTimeout(t);
   }, [channel, send]);
 
