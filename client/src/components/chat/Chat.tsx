@@ -201,7 +201,21 @@ export default function Chat() {
             activeTab={activeTab}
             onTabChange={(tab) => {
               setActiveTab(tab);
-              if (tab === "channels") currentChannelRef.current = channel;
+              if (tab === "channels") {
+                currentChannelRef.current = channel;
+                send({ type: "join", channelId: channel });
+              }
+              if (tab === "dms") {
+                const firstConv = activeDMConv ?? dmConversations[0] ?? null;
+                if (firstConv && !activeDMConv) {
+                  setActiveDMConv(firstConv);
+                  markRead(firstConv.channelId);
+                  currentChannelRef.current = firstConv.channelId;
+                  send({ type: "join", channelId: firstConv.channelId });
+                } else if (activeDMConv) {
+                  send({ type: "join", channelId: activeDMConv.channelId });
+                }
+              }
             }}
             onSelectDM={(conv) => { setActiveDMConv(conv); handleSelectDM(conv); }}
             onTextChannelNamesChange={(names) => { textChannelNamesRef.current = names; }}
