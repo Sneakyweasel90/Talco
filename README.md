@@ -1,6 +1,6 @@
 # Talco
 
-Talco is a private, invite-only chat application built for real-time text and voice communication. It runs as both a web app (hosted on Railway) and a native desktop application on Windows and Linux via Electron. The name comes from the idea of Talcoing — talking a lot, without the noise of a public platform.
+Talco is a private, invite-only chat application built for real-time text and voice communication. It runs as both a web app (hosted on Railway) and a native desktop application on Windows and Linux via Electron. The name comes from the idea of Talcoing — talking a lot, without the noise of a public platform. 
 
 ---
 
