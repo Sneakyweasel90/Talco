@@ -31,41 +31,47 @@ const ICE_SERVERS: RTCConfiguration = {
 const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   echoCancellation: true,
   autoGainControl: true,
-  noiseSuppression: false,
+  noiseSuppression: true,
 };
 
 async function applyNoiseSuppression(rawStream: MediaStream): Promise<MediaStream> {
   try {
-    const mod = await import("@sapphi-red/web-noise-suppressor");
-    const NoiseSupressor = mod.NoiseSupressor ?? mod.default?.NoiseSupressor ?? mod.default;
+    const { RnnoiseWorkletNode, loadRnnoise } = await import("@sapphi-red/web-noise-suppressor");
 
     const audioCtx = new AudioContext({ sampleRate: 48000 });
 
-    // The worklet must be a real fetchable URL — Vite cannot bundle AudioWorklet modules.
-    // scripts/copy-worklet.mjs copies the file to public/ (web) and dist/ (Electron).
-    // In Electron (file://) use a path relative to the current HTML file.
-    // In web (https://) use an absolute origin URL.
-    const isElectron = window.location.protocol === "file:";
-    const workletUrl = isElectron
-      ? new URL("workletProcessor.js", window.location.href).href
-      : `${window.location.origin}/workletProcessor.js`;
     await audioCtx.audioWorklet.addModule(workletUrl);
+
+    const rnnoiseWasm = await loadRnnoise({
+      wasmPath: rnnoiseWasmUrl,
+      wasmSimdPath: rnnoiseSimdUrl,
+    });
 
     const source = audioCtx.createMediaStreamSource(rawStream);
     const destination = audioCtx.createMediaStreamDestination();
-    const suppressor = new NoiseSupressor(audioCtx);
-    await suppressor.init();
-    source.connect(suppressor.getNode());
-    suppressor.getNode().connect(destination);
-    console.log("Noise suppression active (RNNoise WASM)");
+
+    const rnnoiseNode = new RnnoiseWorkletNode(audioCtx, {
+      wasmBinary: rnnoiseWasm,
+      maxChannels: 1,
+    });
+
+    source.connect(rnnoiseNode);
+    rnnoiseNode.connect(destination);
+
+    console.log("Noise suppression active (RNNoise)");
     return destination.stream;
+
   } catch (err) {
     console.warn("Noise suppressor failed to load, using raw stream:", err);
     return rawStream;
   }
 }
 
-function applyGain(rawStream: MediaStream): { processedStream: MediaStream; gainNode: GainNode; audioCtx: AudioContext } {
+function applyGain(rawStream: MediaStream): {
+  processedStream: MediaStream;
+  gainNode: GainNode;
+  audioCtx: AudioContext;
+} {
   const audioCtx = new AudioContext();
   const source = audioCtx.createMediaStreamSource(rawStream);
   const gainNode = audioCtx.createGain();
@@ -73,12 +79,20 @@ function applyGain(rawStream: MediaStream): { processedStream: MediaStream; gain
   gainNode.gain.value = 1.0;
   source.connect(gainNode);
   gainNode.connect(destination);
-  const processedStream = new MediaStream([...destination.stream.getAudioTracks()]);
+  const processedStream = new MediaStream([
+    ...destination.stream.getAudioTracks(),
+  ]);
   return { processedStream, gainNode, audioCtx };
 }
 
-async function getMicStream(): Promise<{ stream: MediaStream; gainNode: GainNode; audioCtx: AudioContext }> {
-  const rawStream = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS });
+async function getMicStream(): Promise<{
+  stream: MediaStream;
+  gainNode: GainNode;
+  audioCtx: AudioContext;
+}> {
+  const rawStream = await navigator.mediaDevices.getUserMedia({
+    audio: AUDIO_CONSTRAINTS,
+  });
   const noiseFree = await applyNoiseSuppression(rawStream);
   const { processedStream, gainNode, audioCtx } = applyGain(noiseFree);
   return { stream: processedStream, gainNode, audioCtx };
@@ -102,13 +116,17 @@ interface ParticipantAudio {
 
 export function useVoice(
   send: (data: ClientMessage) => void,
-  _currentUserId: number
+  _currentUserId: number,
 ) {
   const [inVoice, setInVoice] = useState(false);
   const [voiceChannel, setVoiceChannel] = useState<string | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
-  const [participantVolumes, setParticipantVolumes] = useState<Record<string, number>>({});
-  const [selfVolume, setSelfVolumeState] = useState<number>(() => loadVolume("__self__"));
+  const [participantVolumes, setParticipantVolumes] = useState<
+    Record<string, number>
+  >({});
+  const [selfVolume, setSelfVolumeState] = useState<number>(() =>
+    loadVolume("__self__"),
+  );
 
   const { playJoin, playLeave } = useVoiceSounds();
 
@@ -137,53 +155,123 @@ export function useVoice(
 
       peer.onicecandidate = (e) => {
         if (e.candidate) {
-          send({ type: "voice_ice", targetUserId, candidate: e.candidate.toJSON() });
+          send({
+            type: "voice_ice",
+            targetUserId,
+            candidate: e.candidate.toJSON(),
+          });
         }
       };
 
-      peer.ontrack = (e) => {
-        // Clean up any existing audio pipeline for this user
-        if (participantAudio.current[targetUserId]) {
-          participantAudio.current[targetUserId].audioElement.srcObject = null;
-          participantAudio.current[targetUserId].audioCtx.close();
-          delete participantAudio.current[targetUserId];
-        }
+      peer.ontrack = async (e) => {
+      // Clean up any existing audio pipeline for this user
+      if (participantAudio.current[targetUserId]) {
+        participantAudio.current[targetUserId].audioElement.srcObject = null;
+        participantAudio.current[targetUserId].audioCtx.close();
+        delete participantAudio.current[targetUserId];
+      }
 
-        // Route audio through GainNode so we can boost above 1.0
+      const username = userIdToName.current[targetUserId];
+      const savedVolume = username ? loadVolume(username) : 1;
+
+      try {
+        const { RnnoiseWorkletNode, loadRnnoise } = await import("@sapphi-red/web-noise-suppressor");
+
+        const audioCtx = new AudioContext({ sampleRate: 48000 });
+
+        const isElectron = window.location.protocol === "file:";
+
+        const base = new URL("../", import.meta.url).toString();
+
+        const wasmPath = new URL("rnnoise.wasm", base).toString();
+        const wasmSimdPath = new URL("rnnoise_simd.wasm", base).toString();
+        const workletPath = new URL("workletProcessor.js", base).toString();
+
+        const workletRes = await fetch(workletPath);
+        const workletText = await workletRes.text();
+        const workletBlob = new Blob([workletText], { type: 'application/javascript' });
+        const workletBlobUrl = URL.createObjectURL(workletBlob);
+        await audioCtx.audioWorklet.addModule(workletBlobUrl);
+        URL.revokeObjectURL(workletBlobUrl);
+
+        const wasmRes = await fetch(wasmPath);
+        const wasmBinary = await wasmRes.arrayBuffer();
+        const wasmSimdRes = await fetch(wasmSimdPath);
+        const wasmSimdBinary = await wasmSimdRes.arrayBuffer();
+
+        const rnnoiseWasm = await loadRnnoise({
+          wasmBinary: new Uint8Array(wasmBinary),
+          wasmSimdBinary: new Uint8Array(wasmSimdBinary),
+          locateFile: () => "",
+        });
+
+        const source = audioCtx.createMediaStreamSource(e.streams[0]);
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.value = savedVolume;
+
+        const rnnoiseNode = new RnnoiseWorkletNode(audioCtx, {
+          wasmBinary: rnnoiseWasm,
+          maxChannels: 1,
+        });
+
+        source.connect(rnnoiseNode);
+        rnnoiseNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        const audioElement = new Audio();
+        audioElement.srcObject = e.streams[0];
+        audioElement.volume = 0;
+        audioElement.autoplay = true;
+        audioElement.play().catch(() => {});
+
+        participantAudio.current[targetUserId] = { audioCtx, gainNode, audioElement };
+
+      } catch (err) {
+        console.warn("Incoming noise suppression failed, falling back to raw audio:", err);
+
         const audioCtx = new AudioContext();
         const gainNode = audioCtx.createGain();
-        const username = userIdToName.current[targetUserId];
-        gainNode.gain.value = username ? loadVolume(username) : 1;
+        gainNode.gain.value = savedVolume;
 
         const source = audioCtx.createMediaStreamSource(e.streams[0]);
         source.connect(gainNode);
         gainNode.connect(audioCtx.destination);
 
-        // Still need an audio element to trigger autoplay permission
         const audioElement = new Audio();
         audioElement.srcObject = e.streams[0];
-        audioElement.volume = 0; // muted — GainNode handles the actual output
+        audioElement.volume = 0;
         audioElement.autoplay = true;
         audioElement.play().catch(() => {});
 
         participantAudio.current[targetUserId] = { audioCtx, gainNode, audioElement };
-      };
+      }
+    };
 
       peer.onconnectionstatechange = () => {
         const state = peer.connectionState;
-        console.log(`[${new Date().toISOString()}] Peer ${targetUserId} state: ${state}`);
+        console.log(
+          `[${new Date().toISOString()}] Peer ${targetUserId} state: ${state}`,
+        );
         if (state === "failed") {
           console.warn(`Peer ${targetUserId} failed — attempting ICE restart`);
           if (isInitiator) {
-            peer.createOffer({ iceRestart: true })
+            peer
+              .createOffer({ iceRestart: true })
               .then((offer) => peer.setLocalDescription(offer))
-              .then(() => send({ type: "voice_offer", targetUserId, offer: peer.localDescription! }))
+              .then(() =>
+                send({
+                  type: "voice_offer",
+                  targetUserId,
+                  offer: peer.localDescription!,
+                }),
+              )
               .catch(console.error);
           }
         }
         if (state === "closed") {
           if (participantAudio.current[targetUserId]) {
-            participantAudio.current[targetUserId].audioElement.srcObject = null;
+            participantAudio.current[targetUserId].audioElement.srcObject =
+              null;
             participantAudio.current[targetUserId].audioCtx.close();
             delete participantAudio.current[targetUserId];
           }
@@ -191,20 +279,29 @@ export function useVoice(
       };
 
       peer.oniceconnectionstatechange = () => {
-        console.log(`[${new Date().toISOString()}] Peer ${targetUserId} ICE: ${peer.iceConnectionState}`);
+        console.log(
+          `[${new Date().toISOString()}] Peer ${targetUserId} ICE: ${peer.iceConnectionState}`,
+        );
       };
 
       if (isInitiator) {
-        peer.createOffer()
+        peer
+          .createOffer()
           .then((offer) => peer.setLocalDescription(offer))
-          .then(() => send({ type: "voice_offer", targetUserId, offer: peer.localDescription! }))
+          .then(() =>
+            send({
+              type: "voice_offer",
+              targetUserId,
+              offer: peer.localDescription!,
+            }),
+          )
           .catch(console.error);
       }
 
       peers.current[targetUserId] = peer;
       return peer;
     },
-    [send]
+    [send],
   );
 
   const cleanup = useCallback(() => {
@@ -215,10 +312,12 @@ export function useVoice(
     selfAudioCtx.current = null;
     Object.values(peers.current).forEach((p) => p.close());
     peers.current = {};
-    Object.values(participantAudio.current).forEach(({ audioElement, audioCtx }) => {
-      audioElement.srcObject = null;
-      audioCtx.close();
-    });
+    Object.values(participantAudio.current).forEach(
+      ({ audioElement, audioCtx }) => {
+        audioElement.srcObject = null;
+        audioCtx.close();
+      },
+    );
     participantAudio.current = {};
     userIdToName.current = {};
     setInVoice(false);
@@ -248,7 +347,7 @@ export function useVoice(
         cleanup();
       }
     },
-    [send, inVoice, cleanup]
+    [send, inVoice, cleanup],
   );
 
   const leaveVoice = useCallback(() => {
@@ -265,16 +364,21 @@ export function useVoice(
     send({ type: "voice_join", channelId: channel });
   }, [voiceChannel, send]);
 
-  const setParticipantVolume = useCallback((username: string, volume: number) => {
-    const clamped = Math.max(0, Math.min(2, volume));
-    saveVolume(username, clamped);
-    setParticipantVolumes((prev) => ({ ...prev, [username]: clamped }));
-    // Find userId for this username and update their GainNode live
-    const userId = Object.entries(userIdToName.current).find(([, name]) => name === username)?.[0];
-    if (userId && participantAudio.current[Number(userId)]) {
-      participantAudio.current[Number(userId)].gainNode.gain.value = clamped;
-    }
-  }, []);
+  const setParticipantVolume = useCallback(
+    (username: string, volume: number) => {
+      const clamped = Math.max(0, Math.min(2, volume));
+      saveVolume(username, clamped);
+      setParticipantVolumes((prev) => ({ ...prev, [username]: clamped }));
+      // Find userId for this username and update their GainNode live
+      const userId = Object.entries(userIdToName.current).find(
+        ([, name]) => name === username,
+      )?.[0];
+      if (userId && participantAudio.current[Number(userId)]) {
+        participantAudio.current[Number(userId)].gainNode.gain.value = clamped;
+      }
+    },
+    [],
+  );
 
   const setSelfVolume = useCallback((volume: number) => {
     const clamped = Math.max(0, Math.min(2, volume));
@@ -293,7 +397,9 @@ export function useVoice(
           userIdToName.current[userId] = data.usernames[i];
         });
         const vols: Record<string, number> = {};
-        data.usernames.forEach((name: string) => { vols[name] = loadVolume(name); });
+        data.usernames.forEach((name: string) => {
+          vols[name] = loadVolume(name);
+        });
         setParticipantVolumes(vols);
         data.userIds.forEach((userId: number) => createPeer(userId, true));
       }
@@ -301,7 +407,7 @@ export function useVoice(
       if (data.type === "voice_user_joined") {
         userIdToName.current[data.userId] = data.username;
         setParticipants((prev) =>
-          prev.includes(data.username) ? prev : [...prev, data.username]
+          prev.includes(data.username) ? prev : [...prev, data.username],
         );
         setParticipantVolumes((prev) => ({
           ...prev,
@@ -338,25 +444,36 @@ export function useVoice(
           gainNode.gain.value = loadVolume("__self__");
         }
         const peer = createPeer(data.userId, false);
-        peer.setRemoteDescription(data.offer)
+        peer
+          .setRemoteDescription(data.offer)
           .then(() => peer.createAnswer())
           .then((answer) => peer.setLocalDescription(answer))
-          .then(() => send({ type: "voice_answer", targetUserId: data.userId, answer: peer.localDescription! }))
+          .then(() =>
+            send({
+              type: "voice_answer",
+              targetUserId: data.userId,
+              answer: peer.localDescription!,
+            }),
+          )
           .catch(console.error);
       }
 
       if (data.type === "voice_answer") {
-        peers.current[data.userId]?.setRemoteDescription(data.answer).catch(console.error);
+        peers.current[data.userId]
+          ?.setRemoteDescription(data.answer)
+          .catch(console.error);
       }
 
       if (data.type === "voice_ice") {
         const peer = peers.current[data.userId];
         if (peer?.remoteDescription) {
-          peer.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(console.error);
+          peer
+            .addIceCandidate(new RTCIceCandidate(data.candidate))
+            .catch(console.error);
         }
       }
     },
-    [createPeer, send, playJoin, playLeave]
+    [createPeer, send, playJoin, playLeave],
   );
 
   return {

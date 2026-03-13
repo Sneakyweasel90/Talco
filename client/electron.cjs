@@ -1,10 +1,10 @@
-const { app, BrowserWindow, ipcMain, Notification, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Notification, dialog, shell, protocol } = require("electron");
 const path = require("path");
 const https = require("https");
 const fs = require("fs");
 const os = require("os");
 
-const GITLAB_PROJECT_ID = "80021805";
+const GITHUB_REPO = "Sneakyweasel90/Yakk";
 
 let win;
 let progressWin;
@@ -46,9 +46,12 @@ function getDownloadFileName() {
 function getLatestRelease() {
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: "gitlab.com",
-      path: `/api/v4/projects/${GITLAB_PROJECT_ID}/releases/permalink/latest`,
-      headers: { "User-Agent": "Yakk-App" },
+      hostname: "api.github.com",
+      path: `/repos/${GITHUB_REPO}/releases/latest`,
+      headers: {
+        "User-Agent": "Yakk-App",
+        "Accept": "application/vnd.github+json",
+      },
     };
     https.get(options, (res) => {
       let data = "";
@@ -56,12 +59,7 @@ function getLatestRelease() {
       res.on("end", () => {
         try {
           const parsed = JSON.parse(data);
-          // Normalise GitLab's asset shape to match what the rest of the code expects
-          const assets = (parsed.assets?.links || []).map(link => ({
-            name: link.name,
-            browser_download_url: link.direct_asset_url || link.url,
-          }));
-          resolve({ tag_name: parsed.tag_name, assets });
+          resolve({ tag_name: parsed.tag_name, assets: parsed.assets || [] });
         } catch (e) {
           reject(new Error("Failed to parse release data: " + e.message));
         }
@@ -273,12 +271,11 @@ async function checkForUpdates() {
             type: "error",
             title: "Download Failed",
             message: "Could not download update.",
-            detail: `Error: ${err.message}\n\nPlease visit GitLab to download manually.`,
-            buttons: ["Open GitLab", "Close"],
-            defaultId: 0,
-          }).then(({ response: r }) => {
-            if (r === 0) shell.openExternal(`https://gitlab.com/Sneakyweasel90/yakk/-/releases`);
-          });
+            detail: `Error: ${err.message}\n\nPlease visit GitHub to download manually.`,
+            buttons: ["Open GitHub", "Close"],
+            }).then(({ response: r }) => {
+              if (r === 0) shell.openExternal(`https://github.com/Sneakyweasel90/Yakk/releases`);
+            });
           app.quit();
           return false;
         }
@@ -351,6 +348,20 @@ process.on("uncaughtException", (err) => {
 
 app.whenReady().then(async () => {
   log("App ready");
+
+  protocol.interceptFileProtocol("file", (request, callback) => {
+    let filePath = decodeURIComponent(request.url.slice("file:///".length));
+    filePath = filePath.replace(/\//g, path.sep);
+    if (filePath.includes("app.asar") && !filePath.includes("app.asar.unpacked") &&
+        (filePath.endsWith(".wasm") || filePath.endsWith("workletProcessor.js"))) {
+      const fixed = filePath.replace("app.asar", "app.asar.unpacked");
+      log("Redirecting: " + filePath + " -> " + fixed);
+      callback({ path: fixed });
+    } else {
+      callback({ path: filePath });
+    }
+  });
+
   const canContinue = await checkForUpdates();
   if (canContinue) createWindow();
 });

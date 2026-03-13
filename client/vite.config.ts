@@ -10,11 +10,6 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@sapphi-red/web-noise-suppressor'],
   },
-  build: {
-    rollupOptions: {
-      external: ['@sapphi-red/web-noise-suppressor'],
-    },
-  },
   server: {
     proxy: {
       '/api': {
