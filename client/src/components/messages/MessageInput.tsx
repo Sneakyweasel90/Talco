@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import type { GroupedMessage, OnlineUser } from "../../types";
 
@@ -10,16 +10,55 @@ interface Props {
   onlineUsers?: OnlineUser[];
 }
 
+async function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function MessageInput({ send, channel, replyTo, onCancelReply, onlineUsers = [] }: Props) {
   const [text, setText] = useState("");
   const typingRef = useRef(false);
   const { theme } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Mention autocomplete state ──────────────────────────────────────────────
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState<number>(0);
   const [mentionIndex, setMentionIndex] = useState(0);
+
+  const handleFile = useCallback(async (file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 15 * 1024 * 1024) {
+      alert("Image must be under 15MB");
+      return;
+    }
+    const compressed = await compressImage(file);
+    setImagePreview(compressed);
+  }, []);
 
   const mentionCandidates =
     mentionQuery === null
@@ -36,6 +75,18 @@ export default function MessageInput({ send, channel, replyTo, onCancelReply, on
   useEffect(() => {
     if (replyTo) inputRef.current?.focus();
   }, [replyTo]);
+
+  useEffect(() => {
+    const stop = (e: DragEvent) => e.preventDefault();
+
+    window.addEventListener("dragover", stop);
+    window.addEventListener("drop", stop);
+
+    return () => {
+      window.removeEventListener("dragover", stop);
+      window.removeEventListener("drop", stop);
+    };
+  }, []);
 
   // ── Parse @ trigger on every keystroke ────────────────────────────────────
   const parseMention = (val: string, cursorPos: number) => {
@@ -85,13 +136,16 @@ export default function MessageInput({ send, channel, replyTo, onCancelReply, on
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    send({
-      type: "message",
-      channelId: channel,
-      content: text,
-      replyToId: replyTo?.id ?? null,
-    });
+    if (!text.trim() && !imagePreview) return;
+
+    if (imagePreview) {
+      send({ type: "message", channelId: channel, content: `[img]${imagePreview}`, replyToId: replyTo?.id ?? null });
+      setImagePreview(null);
+    }
+    if (text.trim()) {
+      send({ type: "message", channelId: channel, content: text.trim(), replyToId: replyTo?.id ?? null });
+    }
+
     setText("");
     setMentionQuery(null);
     onCancelReply();
@@ -135,7 +189,58 @@ export default function MessageInput({ send, channel, replyTo, onCancelReply, on
   void renderHighlightedPreview;
 
   return (
-    <div style={{ borderTop: `1px solid ${theme.border}`, background: theme.surface, position: "relative" }}>
+  <div
+    onDragOver={(e) => {
+      e.preventDefault();
+      if (!isDragging) setIsDragging(true);
+    }}
+    onDragLeave={(e) => {
+      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+      setIsDragging(false);
+    }}
+    onDrop={(e) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const f = e.dataTransfer.files?.[0];
+      if (f) handleFile(f);
+    }}
+    style={{
+      borderTop: `1px solid ${theme.border}`,
+      background: theme.surface,
+      position: "relative"
+    }}
+  >
+
+    {/* DROP OVERLAY */}
+    {isDragging && (
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(0,0,0,0.75)",
+          backdropFilter: "blur(2px)",
+          zIndex: 500,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: `2px dashed ${theme.primary}`,
+          //pointerEvents: "none"
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+            fontFamily: "'Orbitron', monospace",
+            color: theme.primary
+          }}
+        >
+          <div style={{ fontSize: "2rem", marginBottom: "6px" }}>🖼</div>
+          <div style={{ letterSpacing: "0.1em", fontSize: "0.8rem" }}>
+            DROP IMAGE TO UPLOAD
+          </div>
+        </div>
+      </div>
+    )}
 
       {/* ── @Mention autocomplete dropdown ──────────────────────────────────── */}
       {mentionCandidates.length > 0 && (
@@ -215,6 +320,31 @@ export default function MessageInput({ send, channel, replyTo, onCancelReply, on
         </div>
       )}
 
+      {imagePreview && (
+        <div style={{
+          padding: "6px 1.5rem",
+          background: theme.primaryGlow,
+          borderBottom: `1px solid ${theme.border}`,
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "8px",
+        }}>
+          <img src={imagePreview} alt="preview" style={{
+            maxHeight: "80px", maxWidth: "160px", borderRadius: "3px",
+            border: `1px solid ${theme.border}`, objectFit: "contain",
+          }} />
+          <button
+            onClick={() => setImagePreview(null)}
+            style={{
+              background: "none", border: `1px solid ${theme.border}`,
+              borderRadius: "3px", color: theme.textDim, cursor: "pointer",
+              fontSize: "0.65rem", padding: "2px 6px",
+              fontFamily: "'Share Tech Mono', monospace",
+            }}
+          >✕ REMOVE</button>
+        </div>
+      )}
+
       {/* Reply banner */}
       {replyTo && (
         <div style={{
@@ -260,7 +390,29 @@ export default function MessageInput({ send, channel, replyTo, onCancelReply, on
           background: theme.primaryGlow, border: `1px solid ${theme.border}`,
           borderRadius: "2px", padding: "0 1rem",
         }}>
-          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "0.9rem", color: theme.textDim }}>&gt;</span>
+          <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "0.9rem", color: theme.textDim }}>
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+            />
+
+            {/* Attach button — inside the input bar */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach image"
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                color: imagePreview ? theme.primary : theme.textDim,
+                fontSize: "1rem", padding: "0 4px", lineHeight: 1,
+                transition: "color 0.15s",
+              }}
+            >📎</button>
+            &gt;</span>
           <input
             ref={inputRef}
             style={{

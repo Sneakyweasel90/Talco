@@ -10,33 +10,43 @@ const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
 
-function renderContent(text: string, linkColor: string): React.ReactNode[] {
+function renderContent(text: string, linkColor: string, borderColor: string): React.ReactNode[] {
+  // Image attachment
+  if (text.startsWith("[img]")) {
+    const src = text.slice(5);
+    return [
+      <img
+        key="img"
+        src={src}
+        alt="attachment"
+        style={{
+          maxWidth: "400px",
+          maxHeight: "300px",
+          borderRadius: "4px",
+          border: `1px solid ${borderColor}`,
+          display: "block",
+          cursor: "pointer",
+          marginTop: "2px",
+          objectFit: "contain",
+        }}
+        onClick={() => window.open(src, "_blank")}
+      />
+    ];
+  }
+
+  // URL auto-linking (existing logic)
   const parts: React.ReactNode[] = [];
   let last = 0;
   let match: RegExpExecArray | null;
   URL_REGEX.lastIndex = 0;
-
   while ((match = URL_REGEX.exec(text)) !== null) {
-    if (match.index > last) {
-      parts.push(text.slice(last, match.index));
-    }
+    if (match.index > last) parts.push(text.slice(last, match.index));
     const url = match[0];
     parts.push(
-      <a
-        key={match.index}
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          color: linkColor,
-          textDecoration: "underline",
-          textUnderlineOffset: "2px",
-          wordBreak: "break-all",
-        }}
+      <a key={match.index} href={url} target="_blank" rel="noopener noreferrer"
+        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px", wordBreak: "break-all" }}
         onClick={(e) => e.stopPropagation()}
-      >
-        {url}
-      </a>
+      >{url}</a>
     );
     last = match.index + url.length;
   }
@@ -282,7 +292,7 @@ export default function MessageItem({
           </form>
         ) : (
           <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text, paddingRight: "4.5rem" }}>
-            {renderContent(msg.content, theme.primary)}
+            {renderContent(msg.content, theme.primary, theme.border)}
             {msg.edited_at && (
               <span style={{ fontSize: "0.65rem", color: theme.textDim, marginLeft: "6px", fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>(edited)</span>
             )}
