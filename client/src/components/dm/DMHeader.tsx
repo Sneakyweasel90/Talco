@@ -1,6 +1,6 @@
-import { useTheme } from "../../context/ThemeContext";
 import Avatar from "../ui/Avatar";
 import type { DMConversation, OnlineUser } from "../../types";
+import styles from "./DMHeader.module.css";
 
 interface Props {
   conversation: DMConversation;
@@ -11,50 +11,40 @@ const STATUS_COLORS = { online: "#4ade80", away: "#facc15", dnd: "#f87171" };
 const STATUS_LABELS = { online: "ONLINE", away: "AWAY", dnd: "DO NOT DISTURB" };
 
 export default function DMHeader({ conversation, onlineUsers }: Props) {
-  const { theme } = useTheme();
   const userStatus = onlineUsers.find(u => u.id === conversation.other_user_id);
   const displayName = conversation.nickname || conversation.username;
-  const dotColor = userStatus ? STATUS_COLORS[userStatus.status ?? "online"] : theme.border;
+  const dotColor = userStatus ? STATUS_COLORS[userStatus.status ?? "online"] : undefined;
 
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: "0.75rem",
-      padding: "0.6rem 1rem", borderBottom: `1px solid ${theme.border}`,
-      background: theme.surface, flexShrink: 0,
-    }}>
-      <div style={{ position: "relative" }}>
+    <div className={styles.header}>
+      <div className={styles.avatarWrap}>
         <Avatar username={displayName} avatar={conversation.avatar} size={28} />
-        <div style={{
-          position: "absolute", bottom: -1, right: -1,
-          width: "8px", height: "8px", borderRadius: "50%",
-          background: dotColor,
-          boxShadow: userStatus ? `0 0 5px ${dotColor}` : "none",
-          border: `1px solid ${theme.surface}`,
-        }} />
+        <div
+          className={styles.statusDot}
+          style={{
+            background: dotColor ?? "var(--border)",
+            boxShadow: dotColor ? `0 0 5px ${dotColor}` : "none",
+          }}
+        />
       </div>
 
-      <div>
-        <span style={{
-          fontFamily: "'Rajdhani', sans-serif", fontWeight: 700,
-          fontSize: "0.95rem", color: theme.primary, letterSpacing: "0.04em",
-        }}>
-          {displayName}
-        </span>
+      <div className={styles.nameWrap}>
+        <span className={styles.displayName}>{displayName}</span>
         {conversation.nickname && (
-          <span style={{ fontSize: "0.65rem", color: theme.textDim, fontFamily: "'Share Tech Mono', monospace", marginLeft: "6px" }}>
-            @{conversation.username}
-          </span>
+          <span className={styles.usernameHint}>@{conversation.username}</span>
         )}
       </div>
 
-      <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
-        <span style={{ fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace", color: userStatus ? dotColor : theme.textDim, opacity: 0.8 }}>
-          {userStatus ? `● ${STATUS_LABELS[userStatus.status ?? "online"]}` : "○ OFFLINE"}
-        </span>
-        {userStatus?.statusText && (
-          <span style={{ fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim, opacity: 0.6 }}>
-            {userStatus.statusText}
+      <div className={styles.statusWrap}>
+        {userStatus ? (
+          <span className={styles.statusLabel} style={{ color: dotColor }}>
+            ● {STATUS_LABELS[userStatus.status ?? "online"]}
           </span>
+        ) : (
+          <span className={styles.statusOffline}>○ OFFLINE</span>
+        )}
+        {userStatus?.statusText && (
+          <span className={styles.statusText}>{userStatus.statusText}</span>
         )}
       </div>
     </div>

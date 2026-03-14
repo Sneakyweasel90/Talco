@@ -1,0 +1,259 @@
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+.wrapper {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  position: relative;
+}
+
+/* ── Drop Overlay ────────────────────────────────────────────────────────── */
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--primary);
+}
+
+.dropOverlayInner {
+  text-align: center;
+  font-family: 'Orbitron', monospace;
+  color: var(--primary);
+}
+
+.dropIcon {
+  font-size: 2rem;
+  margin-bottom: 6px;
+}
+
+.dropLabel {
+  letter-spacing: 0.1em;
+  font-size: 0.8rem;
+}
+
+/* ── Mention Dropdown ────────────────────────────────────────────────────── */
+.mentionDropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 1.5rem;
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--primary-dim);
+  border-radius: 4px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.mentionHeader {
+  padding: 4px 8px;
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+.mentionItem {
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 2px solid transparent;
+  transition: all 0.1s;
+}
+
+.mentionItem.active {
+  background: var(--primary-glow);
+  border-left-color: var(--primary);
+}
+
+.mentionAt {
+  font-size: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--primary);
+}
+
+.mentionName {
+  font-size: 0.9rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mentionItem.active .mentionName {
+  color: var(--primary);
+}
+
+.mentionUsername {
+  font-size: 0.7rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.mentionFooter {
+  padding: 3px 8px;
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  opacity: 0.5;
+}
+
+/* ── Image Preview ───────────────────────────────────────────────────────── */
+.imagePreviewBar {
+  padding: 6px 1.5rem;
+  background: var(--primary-glow);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.imagePreviewThumb {
+  max-height: 80px;
+  max-width: 160px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  object-fit: contain;
+}
+
+.imageRemoveBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  font-family: 'Share Tech Mono', monospace;
+  transition: all 0.15s;
+}
+
+.imageRemoveBtn:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* ── Reply Banner ────────────────────────────────────────────────────────── */
+.replyBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 1.5rem;
+  background: var(--primary-glow);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.replyBannerText {
+  color: var(--text-dim);
+}
+
+.replyBannerAuthor {
+  color: var(--primary);
+  margin-right: 6px;
+}
+
+.replyBannerContent {
+  opacity: 0.6;
+}
+
+.replyBannerCancel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.replyBannerCancel:hover {
+  color: var(--text);
+}
+
+/* ── Input Row ───────────────────────────────────────────────────────────── */
+.inputForm {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+}
+
+.inputBar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary-glow);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 0 1rem;
+}
+
+.inputBarPrefix {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.attachBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 1rem;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.attachBtn:hover,
+.attachBtn.hasImage {
+  color: var(--primary);
+}
+
+.textInput {
+  flex: 1;
+  padding: 0.65rem 0;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--primary);
+  font-family: 'Share Tech Mono', monospace;
+  outline: none;
+}
+
+.textInput::placeholder {
+  color: var(--text-dim);
+  opacity: 0.4;
+}
+
+.sendBtn {
+  padding: 0 1.25rem;
+  background: transparent;
+  border: 1px solid var(--primary-dim);
+  border-radius: 2px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  color: var(--primary);
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  transition: all 0.15s;
+}
+
+.sendBtn:hover {
+  background: var(--primary-glow);
+  border-color: var(--primary);
+}

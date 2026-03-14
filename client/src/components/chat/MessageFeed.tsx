@@ -1,7 +1,7 @@
 import type { RefObject } from "react";
-import { useTheme } from "../../context/ThemeContext";
 import MessageItem from "../messages/MessageItem";
-import type { GroupedMessage, DMConversation, OnlineUser } from "../../types";
+import type { GroupedMessage, DMConversation } from "../../types";
+import styles from "./MessageFeed.module.css";
 
 interface Props {
   isAdmin: boolean;
@@ -39,22 +39,14 @@ export default function MessageFeed({
   onHover, onPickerToggle, onReact, onReply, onEdit, onDelete,
   onUsernameClick, resolveNickname,
 }: Props) {
-  const { theme } = useTheme();
-
   return (
-    <div
-      ref={messagesContainerRef}
-      style={{ flex: 1, overflowY: "auto", padding: "0 1rem 0.5rem" }}
-      onScroll={onScroll}
-    >
-      <div style={{ textAlign: "center", padding: "0.5rem 0" }}>
+    <div ref={messagesContainerRef} className={styles.container} onScroll={onScroll}>
+      <div className={styles.statusRow}>
         {loadingMore && (
-          <span style={{ color: theme.textDim, fontSize: "0.7rem", fontFamily: "'Share Tech Mono', monospace" }}>
-            LOADING...
-          </span>
+          <span className={styles.loadingText}>LOADING...</span>
         )}
         {!hasMore && groupedMessages.length > 0 && (
-          <span style={{ color: theme.textDim, fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", opacity: 0.4 }}>
+          <span className={styles.beginningText}>
             {activeTab === "dms" && activeDMConv
               ? `— START OF DM WITH ${(activeDMConv.nickname || activeDMConv.username).toUpperCase()} —`
               : `— BEGINNING OF #${channel} —`}
@@ -64,9 +56,9 @@ export default function MessageFeed({
 
       {groupedMessages.map((msg) => (
         <MessageItem
+          key={msg.id}
           isAdmin={isAdmin}
           onPin={onPin}
-          key={msg.id}
           msg={msg}
           hoveredMsgId={hoveredMsgId}
           pickerMsgId={pickerMsgId}

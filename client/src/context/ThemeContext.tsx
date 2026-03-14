@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 export const themes = {
   cyberpunk: {
@@ -291,6 +291,22 @@ export function ThemeProvider({ children }) {
   });
 
   const theme = themes[themeName];
+
+  // Inject theme values as CSS custom properties on :root
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--primary", theme.primary);
+    root.style.setProperty("--primary-dim", theme.primaryDim);
+    root.style.setProperty("--primary-glow", theme.primaryGlow);
+    root.style.setProperty("--background", theme.background);
+    root.style.setProperty("--surface", theme.surface);
+    root.style.setProperty("--surface2", theme.surface2);
+    root.style.setProperty("--border", theme.border);
+    root.style.setProperty("--text", theme.text);
+    root.style.setProperty("--text-dim", theme.textDim);
+    root.style.setProperty("--error", theme.error);
+    root.style.setProperty("--grid-color", theme.gridColor);
+  }, [theme]);
 
   const setTheme = (name) => {
     localStorage.setItem("talko_theme", name);

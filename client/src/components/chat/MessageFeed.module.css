@@ -1,0 +1,23 @@
+.container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1rem 0.5rem;
+}
+
+.statusRow {
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.loadingText {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.beginningText {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  opacity: 0.4;
+}

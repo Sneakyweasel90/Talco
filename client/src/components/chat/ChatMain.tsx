@@ -1,4 +1,3 @@
-import { useTheme } from "../../context/ThemeContext";
 import ChannelHeader from "./ChannelHeader";
 import MessageFeed from "./MessageFeed";
 import DMHeader from "../dm/DMHeader";
@@ -7,20 +6,17 @@ import VoiceIndicator from "../voice/VoiceIndicator";
 import MessageInput from "../messages/MessageInput";
 import type { RefObject, MutableRefObject } from "react";
 import type { GroupedMessage, DMConversation, OnlineUser } from "../../types";
+import styles from "./ChatMain.module.css";
 
 interface Props {
-  // Navigation state
   channel: string;
   activeTab: "channels" | "dms";
   activeDMConv: DMConversation | null;
   onlineUsers: OnlineUser[];
-
   token: string;
   isAdmin: boolean;
   onPin: (messageId: number) => void;
   onUnpin: (messageId: number) => void;
-
-  // Message feed
   messagesContainerRef: RefObject<HTMLDivElement>;
   bottomRef: RefObject<HTMLDivElement>;
   groupedMessages: GroupedMessage[];
@@ -40,11 +36,7 @@ interface Props {
   onDelete: (messageId: number) => void;
   onUsernameClick: (userId: number, username: string, el: HTMLElement) => void;
   resolveNickname: (userId: number, username: string) => string;
-
-  // Typing
   typers: Record<string, string>;
-
-  // Voice
   inVoice: boolean;
   voiceChannel: string | null;
   participants: string[];
@@ -54,8 +46,6 @@ interface Props {
   localStream: MutableRefObject<MediaStream | null>;
   setParticipantVolume: (username: string, volume: number) => void;
   setSelfVolume: (volume: number) => void;
-
-  // Input
   send: (data: object) => void;
   replyTo: GroupedMessage | null;
   onCancelReply: () => void;
@@ -75,7 +65,7 @@ export default function ChatMain({
   send, replyTo, onCancelReply,
 }: Props) {
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+    <div className={styles.root}>
       {activeTab === "dms" && activeDMConv
         ? <DMHeader conversation={activeDMConv} onlineUsers={onlineUsers} />
         : <ChannelHeader

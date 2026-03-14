@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { useVoice } from "../../hooks/useVoice";
-import { useTheme } from "../../context/ThemeContext";
 import { useLocalNicknames } from "../../context/LocalNicknameContext";
 import { useMessages } from "../../hooks/useMessages";
 import { useDMs } from "../../hooks/useDMs";
@@ -19,11 +18,11 @@ import UserPopover from "../overlays/UserPopover";
 
 import type { OnlineUser, DMConversation, GroupedMessage, UserStatus } from "../../types";
 import { useUnreadChannels } from "../../hooks/useUnreadChannels";
+import styles from "./Chat.module.css";
 
 export default function Chat() {
   const { user, logout, updateNickname, updateAvatar } = useAuth();
   const { resolve, load, nicknames } = useLocalNicknames();
-  const { theme } = useTheme();
   const { unreadCounts, handleUnreadMessage, markChannelRead } = useUnreadChannels(user!.token);
 
   const userRef = useRef(user);
@@ -136,7 +135,6 @@ export default function Chat() {
     () => rejoinVoiceRef.current(),
   );
 
-  // handleStatusChange must be after send is defined
   const handleStatusChange = useCallback((status: UserStatus, statusText?: string | null) => {
     setMyStatus(status);
     setMyStatusText(statusText ?? null);
@@ -179,15 +177,10 @@ export default function Chat() {
   }, [markRead, send, currentChannelRef]);
 
   return (
-    <div style={{
-      display: "flex", flexDirection: "column",
-      height: "100vh", width: "100vw",
-      background: theme.background, color: theme.text,
-      fontFamily: "'Rajdhani', sans-serif",
-    }}>
+    <div className={styles.root}>
       <TitleBar />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", alignItems: "stretch" }}>
+      <div className={styles.body}>
         <ResizableSidebar>
           <Sidebar
             channel={channel}
@@ -313,13 +306,6 @@ export default function Chat() {
           onClose={() => setShowSearch(false)}
         />
       )}
-
-      <style>{`
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${theme.primaryDim}; border-radius: 2px; }
-        ::-webkit-scrollbar-thumb:hover { background: ${theme.primary}; }
-      `}</style>
     </div>
   );
 }

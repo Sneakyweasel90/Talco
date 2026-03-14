@@ -1,8 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { RoleBadge } from "../ui/RoleBadge";
 import type { GroupedMessage, Reaction } from "../../types";
-import { useTheme } from "../../context/ThemeContext";
 import Avatar from "../ui/Avatar";
+import styles from "./MessageItem.module.css";
 
 const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
@@ -10,8 +10,7 @@ const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
 
-function renderContent(text: string, linkColor: string, borderColor: string): React.ReactNode[] {
-  // Image attachment
+function renderContent(text: string): React.ReactNode[] {
   if (text.startsWith("[img]")) {
     const src = text.slice(5);
     return [
@@ -19,22 +18,12 @@ function renderContent(text: string, linkColor: string, borderColor: string): Re
         key="img"
         src={src}
         alt="attachment"
-        style={{
-          maxWidth: "400px",
-          maxHeight: "300px",
-          borderRadius: "4px",
-          border: `1px solid ${borderColor}`,
-          display: "block",
-          cursor: "pointer",
-          marginTop: "2px",
-          objectFit: "contain",
-        }}
+        className={styles.attachmentImg}
         onClick={() => window.open(src, "_blank")}
       />
     ];
   }
 
-  // URL auto-linking (existing logic)
   const parts: React.ReactNode[] = [];
   let last = 0;
   let match: RegExpExecArray | null;
@@ -43,10 +32,16 @@ function renderContent(text: string, linkColor: string, borderColor: string): Re
     if (match.index > last) parts.push(text.slice(last, match.index));
     const url = match[0];
     parts.push(
-      <a key={match.index} href={url} target="_blank" rel="noopener noreferrer"
-        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px", wordBreak: "break-all" }}
+      <a
+        key={match.index}
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={styles.messageLink}
         onClick={(e) => e.stopPropagation()}
-      >{url}</a>
+      >
+        {url}
+      </a>
     );
     last = match.index + url.length;
   }
@@ -63,7 +58,6 @@ interface EmojiPickerProps {
 }
 
 function EmojiPicker({ messageId, onReact, onClose }: EmojiPickerProps) {
-  const { theme } = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,37 +69,12 @@ function EmojiPicker({ messageId, onReact, onClose }: EmojiPickerProps) {
   }, [onClose]);
 
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "absolute",
-        top: "-44px",
-        left: 0,
-        zIndex: 100,
-        background: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: "4px",
-        padding: "4px 6px",
-        display: "flex",
-        gap: "2px",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-      }}
-    >
+    <div ref={ref} className={styles.emojiPicker}>
       {QUICK_EMOJIS.map((emoji) => (
         <button
           key={emoji}
+          className={styles.emojiBtn}
           onClick={() => { onReact(messageId, emoji); onClose(); }}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "1.15rem",
-            padding: "3px 5px",
-            borderRadius: "3px",
-            transition: "background 0.1s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = theme.primaryGlow)}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
         >
           {emoji}
         </button>
@@ -124,11 +93,10 @@ interface ReactionPillsProps {
 }
 
 function ReactionPills({ reactions, messageId, currentUsername, onReact }: ReactionPillsProps) {
-  const { theme } = useTheme();
   if (reactions.length === 0) return null;
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" }}>
+    <div className={styles.reactionsRow}>
       {reactions.map((r) => {
         const reacted = r.users.includes(currentUsername);
         return (
@@ -136,23 +104,10 @@ function ReactionPills({ reactions, messageId, currentUsername, onReact }: React
             key={r.emoji}
             onClick={() => onReact(messageId, r.emoji)}
             title={r.users.join(", ")}
-            style={{
-              background: reacted ? theme.primaryGlow : "rgba(255,255,255,0.04)",
-              border: `1px solid ${reacted ? theme.primaryDim : theme.border}`,
-              borderRadius: "10px",
-              padding: "1px 7px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "0.8rem",
-              transition: "all 0.15s",
-            }}
+            className={`${styles.reactionPill} ${reacted ? styles.reacted : ""}`}
           >
             <span>{r.emoji}</span>
-            <span style={{ color: reacted ? theme.primary : theme.textDim, fontSize: "0.7rem", fontFamily: "'Share Tech Mono', monospace" }}>
-              {r.count}
-            </span>
+            <span className={styles.reactionCount}>{r.count}</span>
           </button>
         );
       })}
@@ -182,8 +137,8 @@ interface MessageItemProps {
 }
 
 export default function MessageItem({
-  isAdmin, 
-  onPin, 
+  isAdmin,
+  onPin,
   msg,
   hoveredMsgId,
   pickerMsgId,
@@ -199,7 +154,6 @@ export default function MessageItem({
   resolveNickname,
   avatarMap,
 }: MessageItemProps) {
-  const { theme } = useTheme();
   const isHovered = hoveredMsgId === msg.id;
   const isPickerOpen = pickerMsgId === msg.id;
   const isOwnMessage = msg.user_id === currentUserId;
@@ -208,27 +162,25 @@ export default function MessageItem({
 
   return (
     <div
-      style={{
-        display: "flex",
-        gap: "0.75rem",
-        padding: `${msg.isGrouped ? "0.1rem" : "0.65rem"} 0.5rem`,
-        borderRadius: "3px",
-      }}
+      className={`${styles.messageRow} ${msg.isGrouped ? styles.grouped : ""}`}
       onMouseEnter={() => onHover(msg.id)}
       onMouseLeave={() => { if (!isPickerOpen && !editing) onHover(null); }}
     >
       {/* Avatar column */}
-      <div style={{ width: "34px", flexShrink: 0, display: "flex", alignItems: "flex-start", paddingTop: "2px" }}>
-        {!msg.isGrouped && <Avatar username={msg.username} avatar={avatarMap[msg.user_id] ?? null} size={34} />}
+      <div className={styles.avatarCol}>
+        {!msg.isGrouped && (
+          <Avatar username={msg.username} avatar={avatarMap[msg.user_id] ?? null} size={34} />
+        )}
       </div>
 
       {/* Message body */}
-      <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+      <div className={styles.messageBody}>
+
         {/* Header row */}
         {!msg.isGrouped && (
-          <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginBottom: "0.1rem" }}>
+          <div className={styles.headerRow}>
             <span
-              style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: theme.primary, cursor: "pointer" }}
+              className={styles.username}
               onClick={(e) => onUsernameClick(msg.user_id, msg.raw_username || msg.username, e.currentTarget as HTMLElement)}
               title="Click to set local nickname"
             >
@@ -237,7 +189,7 @@ export default function MessageItem({
             {msg.user_role && msg.user_role !== "user" && (
               <RoleBadge role={msg.user_role as "admin" | "user" | "custom"} customRoleName={msg.user_custom_role_name} />
             )}
-            <span style={{ fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim }}>
+            <span className={styles.timestamp}>
               {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
@@ -245,18 +197,9 @@ export default function MessageItem({
 
         {/* Reply quote block */}
         {msg.reply_to_username && msg.reply_to_content && (
-          <div style={{
-            borderLeft: `2px solid ${theme.primaryDim}`,
-            paddingLeft: "8px",
-            marginBottom: "4px",
-            opacity: 0.7,
-            fontSize: "0.8rem",
-            fontFamily: "'Share Tech Mono', monospace",
-          }}>
-            <span style={{ color: theme.primary, fontWeight: 700, marginRight: "6px" }}>
-              {msg.reply_to_username}
-            </span>
-            <span style={{ color: theme.textDim }}>
+          <div className={styles.replyQuote}>
+            <span className={styles.replyAuthor}>{msg.reply_to_username}</span>
+            <span className={styles.replyContent}>
               {msg.reply_to_content.startsWith("[img]")
                 ? "[image]"
                 : msg.reply_to_content.length > 80
@@ -269,6 +212,7 @@ export default function MessageItem({
         {/* Message content — inline edit or normal render */}
         {editing ? (
           <form
+            className={styles.editForm}
             onSubmit={(e) => {
               e.preventDefault();
               if (editText.trim() && editText.trim() !== msg.content) onEdit(msg.id, editText.trim());
@@ -276,161 +220,100 @@ export default function MessageItem({
             }}
             onMouseEnter={(e) => e.stopPropagation()}
             onMouseLeave={(e) => e.stopPropagation()}
-            style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px" }}
           >
             <input
               autoFocus
+              className={styles.editInput}
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") { setEditing(false); setEditText(msg.content); } }}
               onMouseEnter={(e) => e.stopPropagation()}
               onMouseLeave={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
-              style={{
-                flex: 1, background: theme.surface2 || theme.surface,
-                border: `1px solid ${theme.primaryDim}`, borderRadius: "3px",
-                color: theme.text, fontSize: "0.9rem", padding: "3px 8px",
-                fontFamily: "'Share Tech Mono', monospace",
-              }}
             />
-            <button type="submit" style={{ background: "none", border: `1px solid ${theme.primaryDim}`, borderRadius: "3px", color: theme.primary, fontSize: "0.7rem", padding: "2px 8px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}>SAVE</button>
-            <button type="button" onClick={() => { setEditing(false); setEditText(msg.content); }} style={{ background: "none", border: `1px solid ${theme.border}`, borderRadius: "3px", color: theme.textDim, fontSize: "0.7rem", padding: "2px 8px", cursor: "pointer", fontFamily: "'Share Tech Mono', monospace" }}>CANCEL</button>
+            <button type="submit" className={styles.editSaveBtn}>SAVE</button>
+            <button
+              type="button"
+              className={styles.editCancelBtn}
+              onClick={() => { setEditing(false); setEditText(msg.content); }}
+            >
+              CANCEL
+            </button>
           </form>
         ) : (
-          <div style={{ fontSize: "0.9rem", lineHeight: 1.5, wordBreak: "break-word", color: theme.text }}>
-            {renderContent(msg.content, theme.primary, theme.border)}
+          <div className={styles.messageContent}>
+            {renderContent(msg.content)}
             {msg.edited_at && (
-              <span style={{ fontSize: "0.65rem", color: theme.textDim, marginLeft: "6px", fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>(edited)</span>
+              <span className={styles.editedLabel}>(edited)</span>
             )}
           </div>
         )}
 
-        {/* Reactions + action buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-          <ReactionPills
-            reactions={msg.reactions || []}
-            messageId={msg.id}
-            currentUsername={currentUsername}
-            onReact={onReact}
-          />
-        </div>
+        {/* Reactions */}
+        <ReactionPills
+          reactions={msg.reactions || []}
+          messageId={msg.id}
+          currentUsername={currentUsername}
+          onReact={onReact}
+        />
 
+        {/* Action bar */}
         {(isHovered || isPickerOpen || editing) && (
-          <div style={{
-            position: "absolute",
-            top: "-18px",
-            right: "0",
-            display: "flex",
-            gap: "4px",
-            alignItems: "center",
-            background: theme.surface,
-            border: `1px solid ${theme.border}`,
-            borderRadius: "6px",
-            padding: "2px 4px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
-            zIndex: 10,
-          }}>
+          <div className={styles.actionBar}>
 
-            <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
-              {/* Reply button */}
-              <button
-                style={{
-                  border: `1px solid ${theme.border}`,
-                  background: "transparent",
-                  cursor: "pointer",
-                  fontSize: "0.7rem",
-                  padding: "1px 6px",
-                  borderRadius: "10px",
-                  fontFamily: "'Share Tech Mono', monospace",
-                  letterSpacing: "0.05em",
-                  transition: "all 0.15s",
-                  lineHeight: "1.6",
-                  color: theme.textDim,
-                } as React.CSSProperties}
-                onClick={() => onReply(msg)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = theme.primary;
-                  e.currentTarget.style.borderColor = theme.primaryDim;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = theme.textDim;
-                  e.currentTarget.style.borderColor = theme.border;
-                }}
-                title="Reply"
-              >
-                ↩ REPLY
+            {/* Reply */}
+            <button className={styles.actionBtn} onClick={() => onReply(msg)} title="Reply">
+              ↩ REPLY
+            </button>
+
+            {/* Pin — admins only, not for images */}
+            {isAdmin && !msg.content.startsWith("[img]") && (
+              <button className={styles.actionBtn} onClick={() => onPin(msg.id)} title="Pin message">
+                📌 PIN
               </button>
+            )}
 
-              {/* Pin button — admins only, not for image messages */}
-              {isAdmin && !msg.content.startsWith("[img]") && (
-                <button
-                  style={{ border: `1px solid ${theme.border}`, background: "transparent", cursor: "pointer", fontSize: "0.7rem", padding: "1px 6px", borderRadius: "10px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em", transition: "all 0.15s", lineHeight: "1.6", color: theme.textDim } as React.CSSProperties}
-                  onClick={() => onPin(msg.id)}
-                  onMouseEnter={e => { e.currentTarget.style.color = theme.primary; e.currentTarget.style.borderColor = theme.primaryDim; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
-                  title="Pin message"
-                >
-                  📌 PIN
-                </button>
+            {/* Edit + Delete — own messages only */}
+            {isOwnMessage && !editing && !msg.content.startsWith("[img]") && (
+              <button
+                className={styles.actionBtn}
+                onClick={() => { setEditing(true); setEditText(msg.content); }}
+                title="Edit"
+              >
+                ✎ EDIT
+              </button>
+            )}
+            {isOwnMessage && !editing && (
+              <button
+                className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                onClick={() => { if (window.confirm("Delete this message?")) onDelete(msg.id); }}
+                title="Delete"
+              >
+                ✕ DEL
+              </button>
+            )}
+
+            {/* React */}
+            <div className={styles.emojiPickerWrap}>
+              <button
+                className={`${styles.actionBtn} ${isPickerOpen ? styles.actionBtnActive : ""}`}
+                onClick={() => onPickerToggle(isPickerOpen ? null : msg.id)}
+                title="Add reaction"
+              >
+                + 😊
+              </button>
+              {isPickerOpen && (
+                <EmojiPicker
+                  messageId={msg.id}
+                  onReact={onReact}
+                  onClose={() => { onPickerToggle(null); onHover(null); }}
+                />
               )}
-
-              {/* Edit + Delete — only for own messages */}
-              {isOwnMessage && !editing && (
-                <>
-                  <button
-                    style={{ border: `1px solid ${theme.border}`, background: "transparent", cursor: "pointer", fontSize: "0.7rem", padding: "1px 6px", borderRadius: "10px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em", transition: "all 0.15s", lineHeight: "1.6", color: theme.textDim } as React.CSSProperties}
-                    onClick={() => { setEditing(true); setEditText(msg.content); }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = theme.primary; e.currentTarget.style.borderColor = theme.primaryDim; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
-                    title="Edit"
-                  >
-                    ✎ EDIT
-                  </button>
-                  <button
-                    style={{ border: `1px solid ${theme.border}`, background: "transparent", cursor: "pointer", fontSize: "0.7rem", padding: "1px 6px", borderRadius: "10px", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.05em", transition: "all 0.15s", lineHeight: "1.6", color: theme.textDim } as React.CSSProperties}
-                    onClick={() => { if (window.confirm("Delete this message?")) onDelete(msg.id); }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = theme.error; e.currentTarget.style.borderColor = theme.error; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
-                    title="Delete"
-                  >
-                    ✕ DEL
-                  </button>
-                </>
-              )}
-
-              {/* React button */}
-              <div style={{ position: "relative" }}>
-                <button
-                  style={{
-                    border: `1px solid ${isPickerOpen ? theme.primaryDim : theme.border}`,
-                    cursor: "pointer",
-                    fontSize: "0.7rem",
-                    padding: "1px 6px",
-                    borderRadius: "10px",
-                    fontFamily: "'Share Tech Mono', monospace",
-                    letterSpacing: "0.05em",
-                    transition: "all 0.15s",
-                    lineHeight: "1.6",
-                    color: isPickerOpen ? theme.primary : theme.textDim,
-                    background: isPickerOpen ? theme.primaryGlow : "transparent",
-                  } as React.CSSProperties}
-                  onClick={() => onPickerToggle(isPickerOpen ? null : msg.id)}
-                  title="Add reaction"
-                >
-                  + 😊
-                </button>
-                {isPickerOpen && (
-                  <EmojiPicker
-                    messageId={msg.id}
-                    onReact={onReact}
-                    onClose={() => { onPickerToggle(null); onHover(null); }}
-                  />
-                )}
-                </div>
-              </div>
             </div>
-          )}
-        </div>
+
+          </div>
+        )}
       </div>
+    </div>
   );
 }

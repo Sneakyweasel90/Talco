@@ -1,0 +1,57 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.hash {
+  color: var(--text-dim);
+}
+
+.channelName {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.divider {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+.pinBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  padding: 2px 7px;
+  font-family: 'Share Tech Mono', monospace;
+  transition: all 0.15s;
+}
+
+.pinBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
+.onlineCount {
+  font-size: 0.72rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.onlineDot {
+  color: #4ade80;
+}
