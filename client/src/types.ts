@@ -1,4 +1,5 @@
 export type UserRole = "admin" | "user" | "custom";
+export type UserStatus = "online" | "away" | "dnd";
 
 export interface User {
   id: number;
@@ -32,8 +33,8 @@ export interface Message {
   id: number;
   channel_id: string;
   user_id: number;
-  username: string;       // display name at time of sending
-  raw_username: string;   // always the login username — use for local nickname lookups
+  username: string;
+  raw_username: string;
   content: string;
   created_at: string;
   reactions: Reaction[];
@@ -61,13 +62,15 @@ export interface Channel {
 export interface OnlineUser {
   id: number;
   username: string;
+  status: UserStatus;
+  statusText: string | null;
 }
 
 export interface SearchResult {
   id: number;
   channel_id: string;
-  username: string;       // display name at time of sending
-  raw_username: string;   // always the login username — use for local nickname lookups
+  username: string;
+  raw_username: string;
   content: string;
   created_at: string;
 }
@@ -99,8 +102,6 @@ export type ServerMessage =
   | { type: "message_unpinned"; messageId: number; channelId: string };
 
 export type ClientMessage =
-  | { type: "pin_message"; messageId: number; channelId: string }
-  | { type: "unpin_message"; messageId: number; channelId: string }
   | { type: "join"; channelId: string }
   | { type: "load_more"; channelId: string; beforeId: number }
   | { type: "message"; channelId: string; content: string; replyToId?: number | null }
@@ -112,7 +113,10 @@ export type ClientMessage =
   | { type: "voice_answer"; targetUserId: number; answer: RTCSessionDescriptionInit }
   | { type: "voice_ice"; targetUserId: number; candidate: RTCIceCandidateInit }
   | { type: "edit_message"; messageId: number; content: string }
-  | { type: "delete_message"; messageId: number };
+  | { type: "delete_message"; messageId: number }
+  | { type: "pin_message"; messageId: number; channelId: string }
+  | { type: "unpin_message"; messageId: number; channelId: string }
+  | { type: "set_status"; status: UserStatus; statusText?: string | null };
 
 export interface Theme {
   name: string;

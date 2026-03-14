@@ -5,17 +5,6 @@ import redis from "../redis/redisClient.js";
 
 const channels = new Map();
 
-// ── Rate limiting via Redis ────────────────────────────────────────────────
-// Uses a fixed window counter per user per action stored in Redis.
-// Keys are auto-expired so there's no cleanup needed.
-//
-// Limits (per 10-second window):
-//   message  — 20  (chat messages)
-//   react    — 30  (reactions, slightly more lenient)
-//   edit     — 10  (edits, low limit to prevent spam)
-//   typing   — 15  (typing indicators)
-//   default  — 20  (anything else that calls through)
-
 const RATE_LIMITS = {
   message: { max: 20, windowSec: 10 },
   react:   { max: 30, windowSec: 10 },
@@ -29,13 +18,9 @@ async function isRateLimited(userId, action = "default") {
   const key = `rl:ws:${action}:${userId}`;
   try {
     const count = await redis.incr(key);
-    if (count === 1) {
-      // First hit — set the expiry so the key auto-cleans
-      await redis.expire(key, windowSec);
-    }
+    if (count === 1) await redis.expire(key, windowSec);
     return count > max;
   } catch {
-    // If Redis is down, fail open (don't block users)
     return false;
   }
 }
@@ -51,7 +36,6 @@ function broadcast(channelId, data, excludeWs = null) {
   }
 }
 
-// Broadcast to ALL connected clients — no exclusion so sender sees their own presence update
 function broadcastAll(wss, data) {
   const payload = JSON.stringify(data);
   for (const client of wss.clients) {
@@ -86,7 +70,24 @@ async function broadcastPresence(wss) {
     `SELECT id, COALESCE(nickname, username) AS username FROM users WHERE id = ANY($1::int[])`,
     [[...liveUserIds].map(Number)]
   );
-  const payload = JSON.stringify({ type: "presence", users: rows });
+
+  // Merge in live status from ws clients
+  const statusMap = {};
+  for (const client of wss.clients) {
+    if (client.readyState === WebSocket.OPEN && client.user?.id) {
+      statusMap[client.user.id] = {
+        status: client.user.status || "online",
+        statusText: client.user.statusText || null,
+      };
+    }
+  }
+  const usersWithStatus = rows.map(u => ({
+    ...u,
+    status: statusMap[u.id]?.status ?? "online",
+    statusText: statusMap[u.id]?.statusText ?? null,
+  }));
+
+  const payload = JSON.stringify({ type: "presence", users: usersWithStatus });
   for (const client of wss.clients) {
     if (client.readyState === WebSocket.OPEN) client.send(payload);
   }
@@ -105,9 +106,7 @@ function getVoiceState() {
 
 async function getReactions(messageId) {
   const { rows } = await db.query(
-    `SELECT r.emoji,
-            COUNT(*)::int AS count,
-            array_agg(u.username) AS users
+    `SELECT r.emoji, COUNT(*)::int AS count, array_agg(u.username) AS users
      FROM reactions r
      JOIN users u ON r.user_id = u.id
      WHERE r.message_id = $1
@@ -122,9 +121,7 @@ async function attachReactions(messages) {
   if (messages.length === 0) return messages;
   const ids = messages.map(m => m.id);
   const { rows } = await db.query(
-    `SELECT r.message_id, r.emoji,
-            COUNT(*)::int AS count,
-            array_agg(u.username) AS users
+    `SELECT r.message_id, r.emoji, COUNT(*)::int AS count, array_agg(u.username) AS users
      FROM reactions r
      JOIN users u ON r.user_id = u.id
      WHERE r.message_id = ANY($1::int[])
@@ -140,7 +137,6 @@ async function attachReactions(messages) {
   return messages.map(m => ({ ...m, reactions: byMsg[m.id] || [] }));
 }
 
-// Broadcast to all participants of a DM channel
 function broadcastDM(channelId, data, wss) {
   const payload = JSON.stringify(data);
   for (const client of wss.clients) {
@@ -161,11 +157,10 @@ export async function initWebSocket(server) {
 
     if (!user) { ws.close(1008, "Unauthorized"); return; }
 
-    // Cache the user's current nickname for mention matching
     const { rows: nickRow } = await db.query(
       `SELECT nickname FROM users WHERE id = $1`, [user.id]
     );
-    ws.user = { ...user, nickname: nickRow[0]?.nickname || null };
+    ws.user = { ...user, nickname: nickRow[0]?.nickname || null, status: "online", statusText: null };
     ws.channels = new Set();
 
     await redis.sAdd("online_users", String(user.id));
@@ -182,7 +177,6 @@ export async function initWebSocket(server) {
         channels.get(channelId).add(ws);
         ws.channels.add(channelId);
 
-        // Cursor-based pagination: fetch latest 50 by descending ID
         const { rows } = await db.query(
           `SELECT m.*, u.username AS raw_username, u.role AS user_role, u.custom_role_name AS user_custom_role_name,
              rm.username AS reply_to_username, rm.content AS reply_to_content
@@ -200,29 +194,29 @@ export async function initWebSocket(server) {
           hasMore: rows.length === 50,
           oldestId: messages.length > 0 ? messages[0].id : null,
         }));
-        // Send current voice occupancy snapshot to newly joined client
+
         const voiceState = getVoiceState();
         if (Object.keys(voiceState).length > 0) {
           ws.send(JSON.stringify({ type: "voice_state", channels: voiceState }));
         }
-        // Send unread counts for all text channels to the joining client
+
+        // Send unread counts for all text channels
         const { rows: unreadRows } = await db.query(
-          `SELECT c.name,
-            COUNT(m.id)::int AS unread
-          FROM channels c
-          LEFT JOIN messages m ON m.channel_id = c.name
-          LEFT JOIN channel_last_read clr ON clr.channel_name = c.name AND clr.user_id = $1
-          WHERE c.type = 'text'
-            AND (clr.last_read_at IS NULL OR m.created_at > clr.last_read_at)
-          GROUP BY c.name`,
+          `SELECT c.name, COUNT(m.id)::int AS unread
+           FROM channels c
+           LEFT JOIN messages m ON m.channel_id = c.name
+           LEFT JOIN channel_last_read clr ON clr.channel_name = c.name AND clr.user_id = $1
+           WHERE c.type = 'text'
+             AND (clr.last_read_at IS NULL OR m.created_at > clr.last_read_at)
+           GROUP BY c.name`,
           [user.id]
         );
         const unreadMap = {};
         for (const row of unreadRows) unreadMap[row.name] = row.unread;
         ws.send(JSON.stringify({ type: "channel_unread_counts", counts: unreadMap }));
       }
-      
-      // LOAD MORE — cursor-based: fetch 50 messages before a given ID (no OFFSET)
+
+      // LOAD MORE
       if (msg.type === "load_more") {
         const { channelId, beforeId } = msg;
         if (!channelId || !beforeId) return;
@@ -269,33 +263,41 @@ export async function initWebSocket(server) {
           const { rows: replyRows } = await db.query(`SELECT username, content FROM messages WHERE id = $1`, [replyToId]);
           if (replyRows[0]) { reply_to_username = replyRows[0].username; reply_to_content = replyRows[0].content; }
         }
-        const outMsg = { type: "message", message: { ...rows[0], raw_username: uRaw[0]?.username || user.username, user_role: user.role || 'user', user_custom_role_name: uRaw[0]?.custom_role_name || null, reactions: [], reply_to_username, reply_to_content } };
+        const outMsg = {
+          type: "message",
+          message: {
+            ...rows[0],
+            raw_username: uRaw[0]?.username || user.username,
+            user_role: user.role || 'user',
+            user_custom_role_name: uRaw[0]?.custom_role_name || null,
+            reactions: [],
+            reply_to_username,
+            reply_to_content,
+          }
+        };
         if (channelId.startsWith("dm:")) broadcastDM(channelId, outMsg, wss);
         else broadcast(channelId, outMsg);
 
-        // Increment unread count for clients not currently viewing this channel
+        // Increment unread for clients not in this channel
         if (!channelId.startsWith("dm:")) {
           for (const client of wss.clients) {
             if (client.readyState !== WebSocket.OPEN || client._yakk_closed) continue;
-            if (client.user?.id === user.id) continue; // don't count your own messages
-            if (client.channels?.has(channelId)) continue; // they're looking at it right now
+            if (client.user?.id === user.id) continue;
+            if (client.channels?.has(channelId)) continue;
             client.send(JSON.stringify({ type: "channel_unread_increment", channelName: channelId }));
           }
         }
 
-        // ── @mention notifications ─────────────────────────────────────────────
+        // @mention notifications
         const mentionRegex = /@([\w\s]+?)(?=\s|$|[^a-zA-Z0-9_\s])/g;
         const mentionedNames = [...content.trim().matchAll(mentionRegex)].map(m => m[1].trim().toLowerCase());
-
         if (mentionedNames.length > 0) {
           for (const client of wss.clients) {
             if (client.readyState !== WebSocket.OPEN || client._yakk_closed) continue;
-            if (client.user?.id === user.id) continue; // don't notify yourself
+            if (client.user?.id === user.id) continue;
             const clientUsername = client.user?.username?.toLowerCase();
             const clientNickname = client.user?.nickname?.toLowerCase();
-            const isMentioned = mentionedNames.some(
-              n => n === clientUsername || n === clientNickname
-            );
+            const isMentioned = mentionedNames.some(n => n === clientUsername || n === clientNickname);
             if (isMentioned) {
               client.send(JSON.stringify({
                 type: "mention",
@@ -309,84 +311,70 @@ export async function initWebSocket(server) {
       }
 
       // PIN message
-        if (msg.type === "pin_message") {
-          if (user.role !== "admin") return;
-          const { messageId, channelId } = msg;
-          if (!messageId || !channelId) return;
-          try {
-            await db.query(
-              `INSERT INTO pinned_messages (channel_name, message_id, pinned_by)
-              VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
-              [channelId, messageId, user.id]
-            );
-            broadcast(channelId, { type: "message_pinned", messageId, channelId, pinnedBy: user.username });
-          } catch { /* ignore duplicate */ }
-        }
-
-        // UNPIN message
-        if (msg.type === "unpin_message") {
-          if (user.role !== "admin") return;
-          const { messageId, channelId } = msg;
-          if (!messageId || !channelId) return;
+      if (msg.type === "pin_message") {
+        if (user.role !== "admin") return;
+        const { messageId, channelId } = msg;
+        if (!messageId || !channelId) return;
+        try {
           await db.query(
-            `DELETE FROM pinned_messages WHERE channel_name = $1 AND message_id = $2`,
-            [channelId, messageId]
+            `INSERT INTO pinned_messages (channel_name, message_id, pinned_by)
+             VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+            [channelId, messageId, user.id]
           );
-          broadcast(channelId, { type: "message_unpinned", messageId, channelId });
-        }
+          broadcast(channelId, { type: "message_pinned", messageId, channelId, pinnedBy: user.username });
+        } catch { /* ignore duplicate */ }
+      }
+
+      // UNPIN message
+      if (msg.type === "unpin_message") {
+        if (user.role !== "admin") return;
+        const { messageId, channelId } = msg;
+        if (!messageId || !channelId) return;
+        await db.query(
+          `DELETE FROM pinned_messages WHERE channel_name = $1 AND message_id = $2`,
+          [channelId, messageId]
+        );
+        broadcast(channelId, { type: "message_unpinned", messageId, channelId });
+      }
 
       // REACT
       if (msg.type === "react") {
         if (await isRateLimited(user.id, "react")) return;
-
         const { messageId, emoji } = msg;
         if (!messageId || !emoji) return;
-
-        const { rows: msgRows } = await db.query(
-          `SELECT channel_id FROM messages WHERE id = $1`, [messageId]
-        );
+        const { rows: msgRows } = await db.query(`SELECT channel_id FROM messages WHERE id = $1`, [messageId]);
         if (!msgRows[0]) return;
         const channelId = msgRows[0].channel_id;
-
         const { rows: existing } = await db.query(
           `SELECT id FROM reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3`,
           [messageId, user.id, emoji]
         );
-
         if (existing.length > 0) {
-          await db.query(
-            `DELETE FROM reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3`,
-            [messageId, user.id, emoji]
-          );
+          await db.query(`DELETE FROM reactions WHERE message_id = $1 AND user_id = $2 AND emoji = $3`, [messageId, user.id, emoji]);
         } else {
           await db.query(
-            `INSERT INTO reactions (message_id, user_id, emoji) VALUES ($1, $2, $3)
-             ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
+            `INSERT INTO reactions (message_id, user_id, emoji) VALUES ($1, $2, $3) ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
             [messageId, user.id, emoji]
           );
         }
-
         const reactions = await getReactions(messageId);
         broadcast(channelId, { type: "reaction_update", messageId, reactions });
       }
 
-      // EDIT message — only allowed by the original author
+      // EDIT message
       if (msg.type === "edit_message") {
         if (await isRateLimited(user.id, "edit")) return;
-
         const { messageId, content } = msg;
         if (!messageId || !content?.trim()) return;
         const { rows } = await db.query(
-          `UPDATE messages SET content = $1, edited_at = NOW()
-           WHERE id = $2 AND user_id = $3
-           RETURNING channel_id`,
+          `UPDATE messages SET content = $1, edited_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING channel_id`,
           [content.trim(), messageId, user.id]
         );
         if (!rows[0]) return;
         broadcast(rows[0].channel_id, { type: "message_edited", messageId, content: content.trim() });
       }
 
-      // DELETE message — allowed by original author OR admin
+      // DELETE message
       if (msg.type === "delete_message") {
         const { messageId } = msg;
         if (!messageId) return;
@@ -405,28 +393,13 @@ export async function initWebSocket(server) {
         broadcast(msg.channelId, { type: "typing", userId: user.id, username: user.username }, ws);
       }
 
-      // VOICE join
-      if (msg.type === "voice_join") {
-        const { channelId } = msg;
-        ws.voiceChannel = channelId;
-        if (!channels.has(`voice:${channelId}`)) channels.set(`voice:${channelId}`, new Set());
-        const voiceClients = channels.get(`voice:${channelId}`);
-
-        ws.send(JSON.stringify({
-          type: "voice_participants",
-          usernames: [...voiceClients].map(c => c.user.username),
-          userIds: [...voiceClients].map(c => c.user.id),
-        }));
-
-        for (const client of voiceClients) {
-          if (client.readyState === WebSocket.OPEN)
-            client.send(JSON.stringify({ type: "voice_user_joined", userId: user.id, username: user.username, channelId }));
-        }
-
-        voiceClients.add(ws);
-
-        // Broadcast to ALL clients INCLUDING sender so their own sidebar updates
-        broadcastAll(wss, { type: "voice_presence_update", channelId, username: user.username, action: "join" });
+      // SET STATUS
+      if (msg.type === "set_status") {
+        const { status, statusText } = msg;
+        if (!["online", "away", "dnd"].includes(status)) return;
+        ws.user.status = status;
+        ws.user.statusText = (statusText ?? "").slice(0, 60) || null;
+        await broadcastPresence(wss);
       }
 
       // AVATAR UPDATE
@@ -440,18 +413,35 @@ export async function initWebSocket(server) {
         ws.send(JSON.stringify({ type: "pong" }));
       }
 
+      // VOICE join
+      if (msg.type === "voice_join") {
+        const { channelId } = msg;
+        ws.voiceChannel = channelId;
+        if (!channels.has(`voice:${channelId}`)) channels.set(`voice:${channelId}`, new Set());
+        const voiceClients = channels.get(`voice:${channelId}`);
+        ws.send(JSON.stringify({
+          type: "voice_participants",
+          usernames: [...voiceClients].map(c => c.user.username),
+          userIds: [...voiceClients].map(c => c.user.id),
+        }));
+        for (const client of voiceClients) {
+          if (client.readyState === WebSocket.OPEN)
+            client.send(JSON.stringify({ type: "voice_user_joined", userId: user.id, username: user.username, channelId }));
+        }
+        voiceClients.add(ws);
+        broadcastAll(wss, { type: "voice_presence_update", channelId, username: user.username, action: "join" });
+      }
+
       // VOICE leave
       if (msg.type === "voice_leave") {
         if (ws.voiceChannel) {
           const channelId = ws.voiceChannel;
           const voiceClients = channels.get(`voice:${channelId}`);
           voiceClients?.delete(ws);
-
           for (const client of voiceClients || []) {
             if (client.readyState === WebSocket.OPEN)
               client.send(JSON.stringify({ type: "voice_user_left", userId: user.id, username: user.username }));
           }
-
           broadcastAll(wss, { type: "voice_presence_update", channelId, username: user.username, action: "leave" });
           ws.voiceChannel = null;
         }

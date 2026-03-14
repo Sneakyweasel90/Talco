@@ -17,7 +17,7 @@ import MemberList from "../ui/MemberList";
 import SearchOverlay from "../overlays/SearchOverlay";
 import UserPopover from "../overlays/UserPopover";
 
-import type { OnlineUser, DMConversation, GroupedMessage } from "../../types";
+import type { OnlineUser, DMConversation, GroupedMessage, UserStatus } from "../../types";
 import { useUnreadChannels } from "../../hooks/useUnreadChannels";
 
 export default function Chat() {
@@ -39,6 +39,7 @@ export default function Chat() {
     setChannel(name);
     markChannelRead(name);
   }, [markChannelRead]);
+
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
   const [voiceOccupancy, setVoiceOccupancy] = useState<Record<string, string[]>>({});
   const [showSearch, setShowSearch] = useState(false);
@@ -49,6 +50,8 @@ export default function Chat() {
   const [avatarMap, setAvatarMap] = useState<Record<number, string | null>>({});
   const [activeTab, setActiveTab] = useState<"channels" | "dms">("channels");
   const [activeDMConv, setActiveDMConv] = useState<DMConversation | null>(null);
+  const [myStatus, setMyStatus] = useState<UserStatus>("online");
+  const [myStatusText, setMyStatusText] = useState<string | null>(null);
 
   const { conversations: dmConversations, dmLoading, openDM, markRead, onDMMessage, totalUnread } = useDMs(user!.token, user!.id);
 
@@ -88,12 +91,12 @@ export default function Chat() {
         const next = e.key === "ArrowDown"
           ? names[(idx + 1) % names.length]
           : names[(idx - 1 + names.length) % names.length];
-        setChannel(next);
+        handleSelectChannel(next);
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeTab]);
+  }, [activeTab, handleSelectChannel]);
 
   const { send, disconnect } = useWebSocket(
     user!.token,
@@ -119,7 +122,7 @@ export default function Chat() {
       } else if (data.type === "presence") {
         setOnlineUsers(data.users);
       } else if (data.type === "channel_unread_counts" || data.type === "channel_unread_increment") {
-          handleUnreadMessage(data);
+        handleUnreadMessage(data);
       } else if (data.type === "avatar_update") {
         setAvatarMap(prev => ({ ...prev, [data.userId]: data.avatar }));
       } else {
@@ -132,6 +135,13 @@ export default function Chat() {
     },
     () => rejoinVoiceRef.current(),
   );
+
+  // handleStatusChange must be after send is defined
+  const handleStatusChange = useCallback((status: UserStatus, statusText?: string | null) => {
+    setMyStatus(status);
+    setMyStatusText(statusText ?? null);
+    send({ type: "set_status", status, statusText: statusText ?? null });
+  }, [send]);
 
   const {
     groupedMessages, typers, hasMore, loadingMore,
@@ -228,6 +238,9 @@ export default function Chat() {
             }}
             onSelectDM={(conv) => { setActiveDMConv(conv); handleSelectDM(conv); }}
             onTextChannelNamesChange={(names) => { textChannelNamesRef.current = names; }}
+            currentStatus={myStatus}
+            currentStatusText={myStatusText}
+            onStatusChange={handleStatusChange}
           />
         </ResizableSidebar>
 

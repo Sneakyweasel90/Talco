@@ -3,12 +3,12 @@ import { useTheme } from "../../context/ThemeContext";
 import { useChannels } from "../../hooks/useChannels";
 import ChannelList from "./ChannelList";
 import SidebarFooter from "./SidebarFooter";
-import type { OnlineUser, DMConversation } from "../../types";
+import type { OnlineUser, DMConversation, UserStatus } from "../../types";
 
 interface Props {
   channel: string;
-  unreadCounts: Record<string, number>;
   setChannel: (c: string) => void;
+  unreadCounts: Record<string, number>;
   voiceChannel: string | null;
   joinVoice: (c: string) => void;
   leaveVoice: () => void;
@@ -26,7 +26,6 @@ interface Props {
   onAvatarChange: (avatar: string | null) => void;
   participants: string[];
   voiceOccupancy: Record<string, string[]>;
-  // DM props
   dmConversations: DMConversation[];
   dmLoading: boolean;
   activeDMChannel: string | null;
@@ -34,18 +33,21 @@ interface Props {
   activeTab: "channels" | "dms";
   onTabChange: (tab: "channels" | "dms") => void;
   onSelectDM: (conv: DMConversation) => void;
-  // FIX 2: callback so Chat can read text channel names for Alt+↑/↓ navigation
   onTextChannelNamesChange?: (names: string[]) => void;
+  currentStatus: UserStatus;
+  currentStatusText: string | null;
+  onStatusChange: (status: UserStatus, statusText?: string | null) => void;
 }
 
 export default function Sidebar({
-  channel, setChannel, voiceChannel, joinVoice, leaveVoice, unreadCounts,
+  channel, setChannel, unreadCounts, voiceChannel, joinVoice, leaveVoice,
   logout, username, nickname, avatar, userId, token, role, customRoleName,
   onlineUsers, onSearchOpen, onNicknameChange, onAvatarChange,
   participants, voiceOccupancy,
   dmConversations, dmLoading, activeDMChannel, totalUnread,
   activeTab, onTabChange, onSelectDM,
   onTextChannelNamesChange,
+  currentStatus, currentStatusText, onStatusChange,
 }: Props) {
   const { theme } = useTheme();
   const {
@@ -56,7 +58,6 @@ export default function Sidebar({
     toggleCreateText, toggleCreateVoice, cancelCreate,
   } = useChannels(token);
 
-  // Keep the parent's ref up to date whenever the channel list changes
   useEffect(() => {
     onTextChannelNamesChange?.(textChannels.map((c) => c.name));
   }, [textChannels, onTextChannelNamesChange]);
@@ -67,8 +68,7 @@ export default function Sidebar({
       display: "flex", flexDirection: "column", borderRight: "1px solid",
       fontFamily: "'Rajdhani', sans-serif",
       background: `linear-gradient(180deg, ${theme.surface2} 0%, ${theme.surface} 100%)`,
-      borderColor: theme.border,
-      overflow: "hidden",
+      borderColor: theme.border, overflow: "hidden",
     }}>
       {/* Logo */}
       <div style={{ padding: "1.25rem 1rem", borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
@@ -93,15 +93,11 @@ export default function Sidebar({
         onClick={onSearchOpen}
       >
         <span style={{ fontSize: "0.85rem" }}>⌕</span>
-        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "0.7rem", letterSpacing: "0.05em" }}>
-          SEARCH
-        </span>
-        <span style={{ marginLeft: "auto", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.6rem", opacity: 0.5 }}>
-          ctrl+k
-        </span>
+        <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: "0.7rem", letterSpacing: "0.05em" }}>SEARCH</span>
+        <span style={{ marginLeft: "auto", fontFamily: "'Share Tech Mono', monospace", fontSize: "0.6rem", opacity: 0.5 }}>ctrl+k</span>
       </div>
 
-      {/* Channel list — only shown in channels tab */}
+      {/* Channel list */}
       {activeTab === "channels" && (
         <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
           <ChannelList
@@ -149,6 +145,9 @@ export default function Sidebar({
         activeTab={activeTab}
         onTabChange={onTabChange}
         onSelectDM={onSelectDM}
+        currentStatus={currentStatus}
+        currentStatusText={currentStatusText}
+        onStatusChange={onStatusChange}
       />
     </div>
   );
