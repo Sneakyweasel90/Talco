@@ -33,6 +33,64 @@ interface SidebarFooterProps {
   onStatusChange: (status: UserStatus, statusText?: string | null) => void;
 }
 
+function UserRow({ nickname, username, avatar, currentStatus, currentStatusText, theme, onClick }: {
+  nickname: string | null;
+  username: string;
+  avatar: string | null;
+  currentStatus: UserStatus;
+  currentStatusText: string | null;
+  theme: ReturnType<typeof useTheme>["theme"];
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      title="Account settings"
+      style={{
+        display: "flex", alignItems: "center", gap: "0.5rem",
+        cursor: "pointer", borderRadius: "3px", padding: "3px 4px",
+        background: hovered ? theme.primaryGlow : "transparent",
+        border: `1px solid ${hovered ? theme.primaryDim : "transparent"}`,
+        transition: "all 0.15s", minWidth: 0,
+      }}
+    >
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <Avatar username={nickname || username} avatar={avatar} size={28} />
+        <div style={{
+          position: "absolute", bottom: -1, right: -1,
+          width: "9px", height: "9px", borderRadius: "50%",
+          background: STATUS_COLORS[currentStatus],
+          boxShadow: `0 0 5px ${STATUS_COLORS[currentStatus]}`,
+          border: `1px solid ${theme.surface}`,
+        }} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontSize: "0.85rem", fontFamily: "'Share Tech Mono', monospace",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          color: hovered ? theme.primary : theme.text,
+          transition: "color 0.15s",
+        }}>
+          {nickname || username}
+        </div>
+        {currentStatusText ? (
+          <div style={{ fontSize: "0.58rem", color: STATUS_COLORS[currentStatus], fontFamily: "'Share Tech Mono', monospace", opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {currentStatusText}
+          </div>
+        ) : nickname ? (
+          <div style={{ fontSize: "0.6rem", color: theme.textDim, fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>
+            @{username}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function SidebarFooter({
   username, nickname, avatar, userId, token, role, customRoleName,
   onNicknameChange, onAvatarChange, onLogout,
@@ -128,7 +186,7 @@ export default function SidebarFooter({
       {/* User bar */}
       <div style={{
         padding: "0.5rem 0.75rem", borderTop: `1px solid ${theme.border}`,
-        display: "flex", alignItems: "center", gap: "0.5rem",
+        display: "flex", flexDirection: "column", gap: "0.4rem",
         flexShrink: 0, position: "relative",
       }}>
         {/* Status picker popup */}
@@ -160,7 +218,6 @@ export default function SidebarFooter({
                 </span>
               </div>
             ))}
-            {/* Custom status text */}
             <div style={{ marginTop: "0.4rem", paddingTop: "0.4rem", borderTop: `1px solid ${theme.border}` }}>
               <input
                 placeholder="Custom status..."
@@ -180,60 +237,51 @@ export default function SidebarFooter({
           </div>
         )}
 
-        {/* Avatar with status dot */}
-        <div
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1, cursor: "pointer", minWidth: 0 }}
+        {/* User row — clickable for account settings */}
+        <UserRow
+          nickname={nickname}
+          username={username}
+          avatar={avatar}
+          currentStatus={currentStatus}
+          currentStatusText={currentStatusText}
+          theme={theme}
           onClick={() => setShowSettings(true)}
-          title="Account settings"
-        >
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <Avatar username={nickname || username} avatar={avatar} size={28} />
-            <div
-              onClick={(e) => { e.stopPropagation(); setShowStatusPicker(s => !s); }}
-              title="Set status"
-              style={{
-                position: "absolute", bottom: -1, right: -1,
-                width: "9px", height: "9px", borderRadius: "50%",
-                background: STATUS_COLORS[currentStatus],
-                boxShadow: `0 0 5px ${STATUS_COLORS[currentStatus]}`,
-                border: `1px solid ${theme.surface}`,
-                cursor: "pointer",
-              }}
-            />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontSize: "0.85rem", fontFamily: "'Share Tech Mono', monospace",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              color: theme.text,
-            }}>
-              {nickname || username}
-            </div>
-            {currentStatusText ? (
-              <div style={{ fontSize: "0.58rem", color: STATUS_COLORS[currentStatus], fontFamily: "'Share Tech Mono', monospace", opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {currentStatusText}
-              </div>
-            ) : nickname ? (
-              <div style={{ fontSize: "0.6rem", color: theme.textDim, fontFamily: "'Share Tech Mono', monospace", opacity: 0.6 }}>
-                @{username}
-              </div>
-            ) : null}
-          </div>
-        </div>
+        />
 
-        <button
-          onClick={onLogout}
-          style={{
-            background: "none", border: `1px solid ${theme.border}`, cursor: "pointer",
-            fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace",
-            letterSpacing: "0.1em", padding: "3px 6px", borderRadius: "2px",
-            transition: "all 0.2s", flexShrink: 0, color: theme.textDim,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = theme.error; e.currentTarget.style.borderColor = theme.error; }}
-          onMouseLeave={e => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
-        >
-          EXIT
-        </button>
+        {/* Bottom action row */}
+        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+          <button
+            onClick={() => setShowStatusPicker(s => !s)}
+            style={{
+              flex: 1, background: showStatusPicker ? theme.primaryGlow : "none",
+              border: `1px solid ${showStatusPicker ? theme.primaryDim : theme.border}`,
+              borderRadius: "2px", cursor: "pointer",
+              fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace",
+              letterSpacing: "0.08em", padding: "3px 0",
+              color: showStatusPicker ? theme.primary : theme.textDim,
+              transition: "all 0.15s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "5px",
+            }}
+            onMouseEnter={e => { if (!showStatusPicker) { e.currentTarget.style.color = theme.primary; e.currentTarget.style.borderColor = theme.primaryDim; }}}
+            onMouseLeave={e => { if (!showStatusPicker) { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}}
+          >
+            <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: STATUS_COLORS[currentStatus], flexShrink: 0 }} />
+            SET STATUS
+          </button>
+          <button
+            onClick={onLogout}
+            style={{
+              background: "none", border: `1px solid ${theme.border}`, cursor: "pointer",
+              fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace",
+              letterSpacing: "0.1em", padding: "3px 8px", borderRadius: "2px",
+              transition: "all 0.2s", flexShrink: 0, color: theme.textDim,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = theme.error; e.currentTarget.style.borderColor = theme.error; }}
+            onMouseLeave={e => { e.currentTarget.style.color = theme.textDim; e.currentTarget.style.borderColor = theme.border; }}
+          >
+            EXIT
+          </button>
+        </div>
       </div>
 
       {showThemes && <ThemePicker onClose={() => setShowThemes(false)} />}
