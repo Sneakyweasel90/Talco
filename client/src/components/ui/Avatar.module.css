@@ -1,0 +1,18 @@
+.avatar {
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: block;
+  object-fit: cover;
+}
+
+.initials {
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Orbitron', monospace;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  user-select: none;
+}

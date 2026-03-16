@@ -1,0 +1,145 @@
+/* ── Popover ─────────────────────────────────────────────────────────────── */
+.popover {
+  position: fixed;
+  z-index: 300;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  min-width: 220px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── User header ─────────────────────────────────────────────────────────── */
+.userHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.displayName {
+  color: var(--primary);
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.usernameHint {
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+/* ── DM button ───────────────────────────────────────────────────────────── */
+.dmBtn {
+  width: 100%;
+  background: var(--primary-glow);
+  border: 1px solid var(--primary-dim);
+  border-radius: 2px;
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  padding: 0.4rem;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+  transition: all 0.15s;
+}
+
+.dmBtn:hover {
+  background: var(--primary-dim);
+}
+
+/* ── Nickname section ────────────────────────────────────────────────────── */
+.nicknameLabel {
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.35rem;
+}
+
+.nicknameRow {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.nicknameInput {
+  flex: 1;
+  background: var(--background);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.35rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  font-family: 'Share Tech Mono', monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.nicknameInput:focus {
+  border-color: var(--primary-dim);
+}
+
+.setBtn {
+  background: none;
+  border: 1px solid var(--primary-dim);
+  cursor: pointer;
+  color: var(--primary);
+  padding: 0.35rem 0.6rem;
+  border-radius: 2px;
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  transition: all 0.15s;
+}
+
+.setBtn:hover {
+  background: var(--primary-glow);
+}
+
+.setBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.clearBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  margin-top: 0.3rem;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.clearBtn:hover {
+  opacity: 1;
+}
+
+/* ── Feedback ────────────────────────────────────────────────────────────── */
+.msgOk {
+  font-size: 0.65rem;
+  margin-top: 0.4rem;
+  color: #4ade80;
+}
+
+.msgErr {
+  font-size: 0.65rem;
+  margin-top: 0.4rem;
+  color: var(--error);
+}
+
+.selfNote {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  opacity: 0.6;
+}

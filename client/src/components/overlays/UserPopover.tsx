@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { useTheme } from "../../context/ThemeContext";
 import { useLocalNicknames } from "../../context/LocalNicknameContext";
 import Avatar from "../ui/Avatar";
+import styles from "./UserPopover.module.css";
 
 interface Props {
   userId: number;
@@ -13,7 +13,6 @@ interface Props {
 }
 
 export default function UserPopover({ userId, username, isSelf, onClose, anchorEl, onOpenDM }: Props) {
-  const { theme } = useTheme();
   const { setLocalNickname, nicknames } = useLocalNicknames();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -51,113 +50,55 @@ export default function UserPopover({ userId, username, isSelf, onClose, anchorE
   const displayedAs = nicknames[userId] || username;
 
   return (
-    <div
-      ref={ref}
-      style={{
-        position: "fixed",
-        top,
-        left,
-        zIndex: 300,
-        background: theme.surface,
-        border: `1px solid ${theme.border}`,
-        borderRadius: "4px",
-        padding: "0.75rem 1rem",
-        minWidth: "220px",
-        boxShadow: `0 8px 30px rgba(0,0,0,0.6)`,
-        fontFamily: "'Share Tech Mono', monospace",
-      }}
-    >
+    <div ref={ref} className={styles.popover} style={{ top, left }}>
+
       {/* User header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.75rem" }}>
+      <div className={styles.userHeader}>
         <Avatar username={displayedAs} size={36} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: theme.primary, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "0.95rem" }}>
-            {displayedAs}
-          </div>
-          <div style={{ color: theme.textDim, fontSize: "0.65rem", opacity: 0.7 }}>@{username}</div>
+        <div className={styles.userInfo}>
+          <div className={styles.displayName}>{displayedAs}</div>
+          <div className={styles.usernameHint}>@{username}</div>
         </div>
       </div>
 
-      {/* DM button — not for self */}
+      {/* DM button */}
       {!isSelf && onOpenDM && (
-        <button
-          onClick={() => onOpenDM(userId)}
-          style={{
-            width: "100%",
-            background: theme.primaryGlow,
-            border: `1px solid ${theme.primaryDim}`,
-            borderRadius: "2px",
-            color: theme.primary,
-            fontSize: "0.65rem",
-            fontFamily: "'Share Tech Mono', monospace",
-            letterSpacing: "0.1em",
-            padding: "0.4rem",
-            cursor: "pointer",
-            marginBottom: "0.75rem",
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = theme.primaryDim; }}
-          onMouseLeave={e => { e.currentTarget.style.background = theme.primaryGlow; }}
-        >
+        <button className={styles.dmBtn} onClick={() => onOpenDM(userId)}>
           ◈ MESSAGE
         </button>
       )}
 
-      {/* Local nickname field — not shown for self */}
+      {/* Local nickname */}
       {!isSelf && (
         <>
-          <div style={{ color: theme.textDim, fontSize: "0.6rem", letterSpacing: "0.1em", marginBottom: "0.35rem" }}>
-            YOUR LOCAL NICKNAME
-          </div>
-          <div style={{ display: "flex", gap: "0.4rem" }}>
+          <div className={styles.nicknameLabel}>YOUR LOCAL NICKNAME</div>
+          <div className={styles.nicknameRow}>
             <input
               autoFocus
+              className={styles.nicknameInput}
               value={value}
               onChange={e => setValue(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") onClose(); }}
               placeholder="Only visible to you..."
               maxLength={50}
-              style={{
-                flex: 1, background: theme.background, border: `1px solid ${theme.border}`,
-                color: theme.text, padding: "0.35rem 0.5rem", borderRadius: "2px",
-                fontSize: "0.8rem", fontFamily: "'Share Tech Mono', monospace", outline: "none",
-              }}
             />
-            <button
-              onClick={save}
-              disabled={saving}
-              style={{
-                background: "none", border: `1px solid ${theme.primaryDim}`, cursor: "pointer",
-                color: theme.primary, padding: "0.35rem 0.6rem", borderRadius: "2px",
-                fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace",
-                opacity: saving ? 0.5 : 1,
-              }}
-            >
+            <button className={styles.setBtn} onClick={save} disabled={saving}>
               {saving ? "..." : "SET"}
             </button>
           </div>
           {existing && (
-            <button
-              onClick={() => setValue("")}
-              style={{
-                background: "none", border: "none", cursor: "pointer", color: theme.textDim,
-                fontSize: "0.6rem", marginTop: "0.3rem", fontFamily: "'Share Tech Mono', monospace",
-                padding: 0, opacity: 0.6,
-              }}
-            >
+            <button className={styles.clearBtn} onClick={() => setValue("")}>
               clear nickname
             </button>
           )}
           {msg && (
-            <div style={{ fontSize: "0.65rem", marginTop: "0.4rem", color: msg.ok ? "#4ade80" : theme.error }}>
-              {msg.text}
-            </div>
+            <div className={msg.ok ? styles.msgOk : styles.msgErr}>{msg.text}</div>
           )}
         </>
       )}
 
       {isSelf && (
-        <div style={{ color: theme.textDim, fontSize: "0.7rem", opacity: 0.6 }}>
+        <div className={styles.selfNote}>
           That's you! Edit your name in account settings.
         </div>
       )}

@@ -1,0 +1,54 @@
+.titlebar {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 1rem;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+}
+
+.version {
+  color: var(--text-dim);
+  font-size: 0.6rem;
+}
+
+.controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+}
+
+.btn {
+  width: 46px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.15s;
+  -webkit-app-region: no-drag;
+  color: var(--text-dim);
+}
+
+.btn:hover {
+  background: var(--primary-glow);
+}
+
+.btnClose {
+  color: var(--error);
+}
+
+.btnClose:hover {
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+}

@@ -1,0 +1,171 @@
+/* ── Loading ─────────────────────────────────────────────────────────────── */
+.loading {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 1rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── Generate form ───────────────────────────────────────────────────────── */
+.generateForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: var(--background);
+}
+
+.generateLabel {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.input {
+  padding: 0.4rem 0.6rem;
+  border-radius: 2px;
+  font-size: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+  outline: none;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: var(--primary-dim);
+}
+
+.expiryRow {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.expiryLabel {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  white-space: nowrap;
+}
+
+.select {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.7rem;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 3px 6px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.createBtn {
+  margin-left: auto;
+}
+
+/* ── Token list ──────────────────────────────────────────────────────────── */
+.empty {
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 0.5rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.tokenList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tokenCard {
+  border: 1px solid var(--primary-dim);
+  border-radius: 2px;
+  padding: 8px 10px;
+  background: var(--primary-glow);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tokenCard.dead {
+  border-color: var(--border);
+  background: var(--background);
+  opacity: 0.5;
+}
+
+.tokenRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tokenCode {
+  flex: 1;
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--primary);
+  word-break: break-all;
+}
+
+.tokenCode.dead {
+  color: var(--text-dim);
+}
+
+.tokenMeta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+}
+
+.tokenExpiry {
+  opacity: 0.7;
+}
+
+.tokenExpiryAuto {
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  background: none;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 0.6rem;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.btnPrimary {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
+.btnPrimary:hover {
+  background: var(--primary-glow);
+}
+
+.btnMuted {
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+.btnMuted:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}

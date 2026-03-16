@@ -1,0 +1,196 @@
+/* ── Sub-tab bar ─────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ── Status messages ─────────────────────────────────────────────────────── */
+.loadingText {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.errorText {
+  color: var(--error);
+  font-size: 0.75rem;
+  padding: 1rem;
+}
+
+/* ── User list ───────────────────────────────────────────────────────────── */
+.userList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.userCard {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 10px;
+  background: var(--background);
+}
+
+.userCard.banned {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 7%, transparent);
+  opacity: 0.7;
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userRow.noActions {
+  margin-bottom: 0;
+}
+
+.userRow.hasActions {
+  margin-bottom: 6px;
+}
+
+.userName {
+  font-size: 0.8rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+.userNameHint {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.userSelfHint {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.userRole {
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.protectedNote {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  margin-top: 4px;
+  opacity: 0.6;
+}
+
+/* ── User actions ────────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.roleSelect {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 2px 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.customNameInput {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 2px 6px;
+  border-radius: 2px;
+  width: 90px;
+  outline: none;
+}
+
+.customNameInput:focus {
+  border-color: var(--primary-dim);
+}
+
+.actionGroupRight {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  background: none;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 0.6rem;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+}
+
+.btnPrimary {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
+.btnPrimary:hover {
+  background: var(--primary-glow);
+}
+
+.btnMuted {
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+.btnMuted:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.btnDanger {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--error) 10%, transparent);
+}
+
+.btnSuccess {
+  color: #4ade80;
+  border-color: #4ade80;
+}
+
+.btnSuccess:hover {
+  background: rgba(74, 222, 128, 0.1);
+}

@@ -1,0 +1,154 @@
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.root {
+  padding: 0.4rem 1rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* ── Channel label row ───────────────────────────────────────────────────── */
+.channelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.channelLabel {
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+}
+
+.pttBadge {
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  border-radius: 2px;
+  padding: 1px 5px;
+  transition: all 0.1s;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: transparent;
+}
+
+.pttBadge.active {
+  color: var(--primary);
+  background: var(--primary-glow);
+  border-color: var(--primary);
+}
+
+/* ── Controls row ────────────────────────────────────────────────────────── */
+.controlsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  border: 1px solid;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  transition: all 0.15s;
+}
+
+.btnMuted {
+  color: #f87171;
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.btnDeafened {
+  color: #f97316;
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.btnDisconnect {
+  color: #f87171;
+  border-color: #f87171;
+  background: transparent;
+}
+
+.btnDisconnect:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.btnMuted:hover {
+  background: rgba(248, 113, 113, 0.2);
+}
+
+.btnDeafened:hover {
+  background: rgba(249, 115, 22, 0.2);
+}
+
+.btnDefault {
+  color: var(--text-dim);
+  border-color: var(--border);
+  background: transparent;
+}
+
+.btnDefault:hover {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+  background: var(--primary-glow);
+}
+
+.btnActive {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+/* ── Volume sliders ──────────────────────────────────────────────────────── */
+.slidersRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--border);
+  transition: opacity 0.2s;
+}
+
+.slidersRow.deafened {
+  opacity: 0.4;
+}
+
+/* ── Volume slider ───────────────────────────────────────────────────────── */
+.sliderWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+}
+
+.sliderLabel {
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
+  text-align: center;
+}
+
+.sliderInput {
+  width: 64px;
+  cursor: pointer;
+  height: 3px;
+}
+
+.sliderValue {
+  font-size: 0.55rem;
+  font-family: 'Share Tech Mono', monospace;
+  opacity: 0.6;
+}

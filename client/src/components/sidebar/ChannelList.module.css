@@ -1,0 +1,211 @@
+/* ── Section header ──────────────────────────────────────────────────────── */
+.sectionHeader {
+  padding: 0.75rem 1rem 0.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionLabel {
+  font-size: 0.62rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.addBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+
+.addBtn:hover {
+  color: var(--primary);
+}
+
+/* ── Create input ────────────────────────────────────────────────────────── */
+.createRow {
+  padding: 0.25rem 0.75rem;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.createInput {
+  flex: 1;
+  background: var(--primary-glow);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  padding: 0.3rem 0.5rem;
+  border-radius: 2px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.createInput:focus {
+  border-color: var(--primary-dim);
+}
+
+.createConfirmBtn {
+  background: var(--primary-glow);
+  border: 1px solid var(--primary-dim);
+  color: var(--primary);
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 0.4rem;
+  font-size: 0.8rem;
+  transition: all 0.15s;
+}
+
+.createConfirmBtn:hover {
+  background: var(--primary-dim);
+}
+
+/* ── Channel row ─────────────────────────────────────────────────────────── */
+.channel {
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  position: relative;
+  transition: all 0.15s;
+  margin: 1px 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border-left: 2px solid transparent;
+}
+
+.channel:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--primary-glow) 50%, transparent);
+}
+
+.channel.active {
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-glow);
+  border-left-color: var(--primary);
+}
+
+.channel.hasUnread {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.channelHash {
+  color: var(--border);
+}
+
+.channelVoiceIcon {
+  color: var(--text-dim);
+}
+
+.channelName {
+  flex: 1;
+}
+
+/* ── Unread badge ────────────────────────────────────────────────────────── */
+.unreadBadge {
+  background: var(--primary);
+  color: var(--background);
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: 700;
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ── Active dot ──────────────────────────────────────────────────────────── */
+.activeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--primary);
+  box-shadow: 0 0 6px var(--primary);
+}
+
+/* ── Delete button ───────────────────────────────────────────────────────── */
+.deleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.4;
+  padding: 0;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: opacity 0.15s;
+}
+
+.deleteBtn:hover {
+  opacity: 0.8;
+}
+
+/* ── Voice channel wrapper ───────────────────────────────────────────────── */
+.voiceChannelWrap {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.voiceChannelRow {
+  display: flex;
+  align-items: center;
+  padding-right: 0.5rem;
+}
+
+.voiceChannelMain {
+  flex: 1;
+}
+
+.voiceOccupantCount {
+  font-size: 0.55rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.liveBadge {
+  font-size: 0.5rem;
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--primary-dim);
+  flex-shrink: 0;
+  color: var(--primary);
+  background: var(--primary-glow);
+}
+
+/* ── Voice occupants ─────────────────────────────────────────────────────── */
+.occupantRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 1rem 0.2rem 2.5rem;
+}
+
+.occupantName {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.occupantMic {
+  font-size: 0.55rem;
+  color: #4ade80;
+}

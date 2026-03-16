@@ -1,0 +1,311 @@
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── DM list area ────────────────────────────────────────────────────────── */
+.dmListWrap {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ── Tab switcher ────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-top: 2px solid transparent;
+  color: var(--text-dim);
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.tab.active {
+  border-top-color: var(--primary);
+  color: var(--primary);
+}
+
+.tabUnreadBadge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: var(--primary);
+  color: var(--background);
+  border-radius: 8px;
+  padding: 0 4px;
+  font-size: 0.55rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-weight: 700;
+  min-width: 14px;
+  text-align: center;
+}
+
+/* ── Theme row ───────────────────────────────────────────────────────────── */
+.themeRow {
+  padding: 0.35rem 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.themeBtn {
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  padding: 3px 7px;
+  border-radius: 2px;
+  transition: all 0.15s;
+  color: var(--text-dim);
+}
+
+.themeBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
+/* ── User bar ────────────────────────────────────────────────────────────── */
+.userBar {
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ── Status picker popup ─────────────────────────────────────────────────── */
+.statusPicker {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--primary-dim);
+  border-radius: 4px;
+  padding: 0.5rem;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.statusPickerTitle {
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.4rem;
+}
+
+.statusOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.1s;
+}
+
+.statusOption:hover {
+  background: color-mix(in srgb, var(--primary-glow) 40%, transparent);
+}
+
+.statusOption.activeStatus {
+  background: var(--primary-glow);
+}
+
+.statusOptionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusOptionLabel {
+  font-size: 0.7rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+}
+
+.statusOption.activeStatus .statusOptionLabel {
+  color: var(--primary);
+}
+
+.statusTextWrap {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.statusTextInput {
+  width: 100%;
+  background: var(--primary-glow);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--primary);
+  font-size: 0.72rem;
+  padding: 4px 6px;
+  font-family: 'Share Tech Mono', monospace;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.statusTextInput:focus {
+  border-color: var(--primary-dim);
+}
+
+/* ── Action row ──────────────────────────────────────────────────────────── */
+.actionRow {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.statusBtn {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.08em;
+  padding: 3px 0;
+  color: var(--text-dim);
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.statusBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary-dim);
+}
+
+.statusBtn.open {
+  background: var(--primary-glow);
+  border-color: var(--primary-dim);
+  color: var(--primary);
+}
+
+.statusBtnDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.exitBtn {
+  background: none;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.exitBtn:hover {
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* ── User row ────────────────────────────────────────────────────────────── */
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 3px 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  min-width: 0;
+}
+
+.userRow:hover {
+  background: var(--primary-glow);
+  border-color: var(--primary-dim);
+}
+
+.userAvatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.userStatusDot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--surface);
+}
+
+.userNameWrap {
+  min-width: 0;
+}
+
+.userDisplayName {
+  font-size: 0.85rem;
+  font-family: 'Share Tech Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  transition: color 0.15s;
+}
+
+.userRow:hover .userDisplayName {
+  color: var(--primary);
+}
+
+.userStatusText {
+  font-size: 0.58rem;
+  font-family: 'Share Tech Mono', monospace;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userUsernameHint {
+  font-size: 0.6rem;
+  color: var(--text-dim);
+  font-family: 'Share Tech Mono', monospace;
+  opacity: 0.6;
+}

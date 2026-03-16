@@ -1,5 +1,7 @@
 import { useTheme } from "../../context/ThemeContext";
 import { useVoiceControls } from "../../hooks/useVoiceControls";
+import type { MutableRefObject } from "react";
+import styles from "./VoiceIndicator.module.css";
 
 interface Props {
   inVoice: boolean;
@@ -13,26 +15,15 @@ interface Props {
   setSelfVolume: (volume: number) => void;
 }
 
-function VolumeSlider({
-  label,
-  value,
-  onChange,
-  color,
-}: {
+function VolumeSlider({ label, value, onChange, color }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   color: string;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", minWidth: "60px" }}>
-      <span style={{
-        fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace",
-        color, letterSpacing: "0.05em", whiteSpace: "nowrap", overflow: "hidden",
-        textOverflow: "ellipsis", maxWidth: "72px", textAlign: "center",
-      }}>
-        {label}
-      </span>
+    <div className={styles.sliderWrap}>
+      <span className={styles.sliderLabel} style={{ color }}>{label}</span>
       <input
         type="range"
         min={0}
@@ -40,18 +31,11 @@ function VolumeSlider({
         step={0.05}
         value={value}
         onChange={e => onChange(parseFloat(e.target.value))}
-        style={{
-          width: "64px",
-          accentColor: color,
-          cursor: "pointer",
-          height: "3px",
-        }}
+        className={styles.sliderInput}
+        style={{ accentColor: color }}
         title={`${Math.round(value * 100)}%`}
       />
-      <span style={{
-        fontSize: "0.55rem", fontFamily: "'Share Tech Mono', monospace",
-        color, opacity: 0.6,
-      }}>
+      <span className={styles.sliderValue} style={{ color }}>
         {Math.round(value * 100)}%
       </span>
     </div>
@@ -66,98 +50,46 @@ export default function VoiceIndicator({
 }: Props) {
   const { theme } = useTheme();
   const {
-    isMuted,
-    isDeafened,
-    isPttActive,
-    mode,
-    muteKey,
-    pttKey,
-    assigningKey,
-    toggleMute,
-    toggleDeafen,
-    toggleMode,
-    setAssigningKey,
-    resetControls,
+    isMuted, isDeafened, isPttActive, mode,
+    muteKey, pttKey, assigningKey,
+    toggleMute, toggleDeafen, toggleMode,
+    setAssigningKey, resetControls,
   } = useVoiceControls(localStream);
 
   if (!inVoice) return null;
 
-  const handleLeave = () => {
-    resetControls();
-    leaveVoice();
-  };
-
-  const btnBase: React.CSSProperties = {
-    border: "1px solid",
-    borderRadius: "2px",
-    cursor: "pointer",
-    fontSize: "0.65rem",
-    fontFamily: "'Share Tech Mono', monospace",
-    letterSpacing: "0.08em",
-    padding: "3px 8px",
-    transition: "all 0.15s",
-  };
+  const handleLeave = () => { resetControls(); leaveVoice(); };
 
   return (
-    <div style={{
-      padding: "0.4rem 1rem",
-      background: theme.surface,
-      borderTop: `1px solid ${theme.border}`,
-      display: "flex",
-      flexDirection: "column",
-      gap: "0.4rem",
-    }}>
+    <div className={styles.root}>
       {/* Channel label */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{
-          fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace",
-          letterSpacing: "0.1em", color: theme.primary,
-        }}>
-          🔊 {voiceChannel}
-        </span>
+      <div className={styles.channelRow}>
+        <span className={styles.channelLabel}>🔊 {voiceChannel}</span>
         {mode === "ptt" && (
-          <span style={{
-            fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace",
-            color: isPttActive ? theme.primary : theme.textDim,
-            background: isPttActive ? theme.primaryGlow : "transparent",
-            border: `1px solid ${isPttActive ? theme.primary : theme.border}`,
-            borderRadius: "2px", padding: "1px 5px",
-            transition: "all 0.1s",
-          }}>
+          <span className={`${styles.pttBadge} ${isPttActive ? styles.active : ""}`}>
             {isPttActive ? "● TRANSMITTING" : `PTT: ${pttKey}`}
           </span>
         )}
       </div>
 
       {/* Controls row */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", alignItems: "center" }}>
-
-        {/* Mute button */}
+      <div className={styles.controlsRow}>
+        {/* Mute */}
         {mode === "open" && (
           <button
             onClick={toggleMute}
             title={isMuted ? "Unmute mic" : "Mute mic"}
-            style={{
-              ...btnBase,
-              color: isMuted ? "#f87171" : theme.textDim,
-              borderColor: isMuted ? "#f87171" : theme.border,
-              background: isMuted ? "rgba(248,113,113,0.1)" : "transparent",
-            }}
+            className={`${styles.btn} ${isMuted ? styles.btnMuted : styles.btnDefault}`}
           >
             {isMuted ? "🔇 MUTED" : "🎙 MUTE"}
           </button>
         )}
 
-        {/* Deafen button — always visible */}
+        {/* Deafen */}
         <button
           onClick={toggleDeafen}
           title={isDeafened ? "Undeafen" : "Deafen (mutes mic + all incoming audio)"}
-          style={{
-            ...btnBase,
-            color: isDeafened ? "#f97316" : theme.textDim,
-            borderColor: isDeafened ? "#f97316" : theme.border,
-            background: isDeafened ? "rgba(249,115,22,0.1)" : "transparent",
-          }}
+          className={`${styles.btn} ${isDeafened ? styles.btnDeafened : styles.btnDefault}`}
         >
           {isDeafened ? "🔕 DEAFENED" : "🔔 DEAFEN"}
         </button>
@@ -166,59 +98,40 @@ export default function VoiceIndicator({
         <button
           onClick={toggleMode}
           title={mode === "open" ? "Switch to Push to Talk" : "Switch to Open Mic"}
-          style={{ ...btnBase, color: theme.textDim, borderColor: theme.border, background: "transparent" }}
+          className={`${styles.btn} ${styles.btnDefault}`}
         >
           {mode === "open" ? "PTT" : "OPEN MIC"}
         </button>
 
-        {/* Keybind assign */}
+        {/* Mute keybind */}
         {mode === "open" && (
           <button
             onClick={() => setAssigningKey(assigningKey === "mute" ? null : "mute")}
-            style={{
-              ...btnBase,
-              color: assigningKey === "mute" ? theme.primary : theme.textDim,
-              borderColor: assigningKey === "mute" ? theme.primary : theme.border,
-              background: assigningKey === "mute" ? theme.primaryGlow : "transparent",
-            }}
+            className={`${styles.btn} ${assigningKey === "mute" ? styles.btnActive : styles.btnDefault}`}
           >
             {assigningKey === "mute" ? "PRESS A KEY..." : `MUTE KEY: ${muteKey}`}
           </button>
         )}
+
+        {/* PTT keybind */}
         {mode === "ptt" && (
           <button
             onClick={() => setAssigningKey(assigningKey === "ptt" ? null : "ptt")}
-            style={{
-              ...btnBase,
-              color: assigningKey === "ptt" ? theme.primary : theme.textDim,
-              borderColor: assigningKey === "ptt" ? theme.primary : theme.border,
-              background: assigningKey === "ptt" ? theme.primaryGlow : "transparent",
-            }}
+            className={`${styles.btn} ${assigningKey === "ptt" ? styles.btnActive : styles.btnDefault}`}
           >
             {assigningKey === "ptt" ? "PRESS A KEY..." : `PTT KEY: ${pttKey}`}
           </button>
         )}
 
         {/* Disconnect */}
-        <button
-          onClick={handleLeave}
-          style={{ ...btnBase, color: "#f87171", borderColor: "#f87171", background: "transparent" }}
-        >
+        <button onClick={handleLeave} className={`${styles.btn} ${styles.btnDisconnect}`}>
           DISCONNECT
         </button>
       </div>
 
       {/* Volume sliders */}
       {participants.length > 0 && (
-        <div style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "0.75rem",
-          paddingTop: "0.25rem",
-          borderTop: `1px solid ${theme.border}`,
-          opacity: isDeafened ? 0.4 : 1,
-          transition: "opacity 0.2s",
-        }}>
+        <div className={`${styles.slidersRow} ${isDeafened ? styles.deafened : ""}`}>
           <VolumeSlider
             label="YOU"
             value={selfVolume}

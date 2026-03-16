@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useRef, useState } from "react";
 import axios from "axios";
-import { useTheme } from "../../context/ThemeContext";
 import Avatar from "../ui/Avatar";
 import config from "../../config";
-import type { AdminUser, UserRole } from "../../types";
+import type { UserRole } from "../../types";
 import { RoleBadge } from "../ui/RoleBadge";
 import AdminPanel from "./AdminPanel";
+import styles from "./AccountSettings.module.css";
 
 interface Props {
   user: {
@@ -22,28 +22,25 @@ interface Props {
   onAvatarChange: (avatar: string | null) => void;
 }
 
-// ── Main AccountSettings ──────────────────────────────────────────────────────
-
 export default function AccountSettings({ user, onClose, onNicknameChange, onAvatarChange }: Props) {
-  const { theme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
-
   const [tab, setTab] = useState<"profile" | "admin">("profile");
 
-  const [nickname, setNickname]             = useState(user.nickname || "");
-  const [avatarPreview, setAvatarPreview]   = useState<string | null>(user.avatar);
+  const [nickname, setNickname] = useState(user.nickname || "");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user.avatar);
   const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword]       = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [nickSaving, setNickSaving]   = useState(false);
-  const [nickMsg, setNickMsg]         = useState<{ text: string; ok: boolean } | null>(null);
+  const [nickSaving, setNickSaving] = useState(false);
+  const [nickMsg, setNickMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
-  const [avatarMsg, setAvatarMsg]     = useState<{ text: string; ok: boolean } | null>(null);
-  const [pwSaving, setPwSaving]       = useState(false);
-  const [pwMsg, setPwMsg]             = useState<{ text: string; ok: boolean } | null>(null);
+  const [avatarMsg, setAvatarMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ text: string; ok: boolean } | null>(null);
 
   const displayName = user.nickname || user.username;
+  const isAdmin = user.role === "admin";
 
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,37 +108,24 @@ export default function AccountSettings({ user, onClose, onNicknameChange, onAva
     }
   };
 
-  const isAdmin = user.role === "admin";
-
   return (
-    <div style={styles.overlay} onClick={onClose}>
-      <div
-        style={{ ...styles.modal, background: theme.surface, border: `1px solid ${theme.border}`, boxShadow: `0 0 40px ${theme.primaryGlow}` }}
-        onClick={e => e.stopPropagation()}
-      >
+    <div className={styles.overlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+
         {/* Header */}
-        <div style={{ ...styles.header, borderColor: theme.border }}>
-          <span style={{ ...styles.title, color: theme.primary, textShadow: `0 0 10px ${theme.primaryDim}` }}>
-            ◈ ACCOUNT SETTINGS
-          </span>
-          <button onClick={onClose} style={{ ...styles.closeBtn, color: theme.textDim }}>✕</button>
+        <div className={styles.header}>
+          <span className={styles.title}>◈ ACCOUNT SETTINGS</span>
+          <button className={styles.closeBtn} onClick={onClose}>✕</button>
         </div>
 
-        {/* Tabs — only show admin tab if admin */}
+        {/* Tabs */}
         {isAdmin && (
-          <div style={{ display: "flex", borderBottom: `1px solid ${theme.border}` }}>
+          <div className={styles.tabs}>
             {(["profile", "admin"] as const).map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                style={{
-                  flex: 1, background: "none", border: "none",
-                  borderBottom: `2px solid ${tab === t ? theme.primary : "transparent"}`,
-                  color: tab === t ? theme.primary : theme.textDim,
-                  fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace",
-                  letterSpacing: "0.12em", padding: "0.6rem",
-                  cursor: "pointer", transition: "all 0.15s",
-                }}
+                className={`${styles.tab} ${tab === t ? styles.active : ""}`}
               >
                 {t === "profile" ? "◈ PROFILE" : "⚙ USER MANAGEMENT"}
               </button>
@@ -153,79 +137,127 @@ export default function AccountSettings({ user, onClose, onNicknameChange, onAva
         {tab === "profile" && (
           <>
             {/* Profile preview */}
-            <div style={{ ...styles.profile, borderColor: theme.border }}>
+            <div className={styles.profile}>
               <Avatar username={displayName} avatar={avatarPreview} size={56} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ ...styles.displayName, color: theme.primary }}>{displayName}</div>
+              <div className={styles.profileInfo}>
+                <div className={styles.profileNameRow}>
+                  <span className={styles.displayName}>{displayName}</span>
                   <RoleBadge role={user.role} customRoleName={user.customRoleName} />
                 </div>
-                {user.nickname && <div style={{ ...styles.usernameHint, color: theme.textDim }}>@{user.username}</div>}
+                {user.nickname && (
+                  <div className={styles.usernameHint}>@{user.username}</div>
+                )}
               </div>
             </div>
 
             {/* Avatar */}
-            <div style={styles.section}>
-              <label style={{ ...styles.label, color: theme.textDim }}>AVATAR IMAGE</label>
-              <p style={{ ...styles.hint, color: theme.textDim }}>JPG or PNG, max 500KB.</p>
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                <button onClick={() => fileRef.current?.click()} style={{ ...styles.btn, color: theme.primary, border: `1px solid ${theme.primaryDim}` }}>
+            <div className={styles.section}>
+              <label className={styles.label}>AVATAR IMAGE</label>
+              <p className={styles.hint}>JPG or PNG, max 500KB.</p>
+              <div className={styles.avatarButtons}>
+                <button
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => fileRef.current?.click()}
+                >
                   {avatarPreview ? "CHANGE IMAGE" : "UPLOAD IMAGE"}
                 </button>
                 {avatarPreview && (
-                  <button onClick={() => { setAvatarPreview(null); setAvatarMsg(null); if (fileRef.current) fileRef.current.value = ""; }}
-                    style={{ ...styles.btn, color: theme.textDim, border: `1px solid ${theme.border}` }}>
+                  <button
+                    className={`${styles.btn} ${styles.btnSecondary}`}
+                    onClick={() => { setAvatarPreview(null); setAvatarMsg(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  >
                     REMOVE
                   </button>
                 )}
-                <button onClick={saveAvatar} disabled={avatarSaving}
-                  style={{ ...styles.btn, color: theme.primary, border: `1px solid ${theme.primaryDim}`, opacity: avatarSaving ? 0.5 : 1 }}>
+                <button
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={saveAvatar}
+                  disabled={avatarSaving}
+                  style={{ opacity: avatarSaving ? 0.5 : 1 }}
+                >
                   {avatarSaving ? "SAVING..." : "SAVE AVATAR"}
                 </button>
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarFile} />
-              {avatarMsg && <p style={{ ...styles.msg, color: avatarMsg.ok ? "#4ade80" : theme.error }}>{avatarMsg.text}</p>}
+              {avatarMsg && (
+                <p className={`${styles.msg} ${avatarMsg.ok ? styles.msgOk : styles.msgErr}`}>
+                  {avatarMsg.text}
+                </p>
+              )}
             </div>
 
             {/* Nickname */}
-            <div style={{ ...styles.section, borderTop: `1px solid ${theme.border}`, paddingTop: "1rem" }}>
-              <label style={{ ...styles.label, color: theme.textDim }}>DISPLAY NAME</label>
-              <div style={styles.row}>
-                <input style={{ ...styles.input, background: theme.background, border: `1px solid ${theme.border}`, color: theme.text }}
-                  placeholder="nickname (leave blank to use username)" value={nickname}
+            <div className={styles.sectionDivider}>
+              <label className={styles.label}>DISPLAY NAME</label>
+              <div className={styles.row}>
+                <input
+                  className={styles.input}
+                  placeholder="nickname (leave blank to use username)"
+                  value={nickname}
                   onChange={e => setNickname(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && saveNickname()} />
-                <button onClick={saveNickname} disabled={nickSaving}
-                  style={{ ...styles.btn, color: theme.primary, border: `1px solid ${theme.primaryDim}`, opacity: nickSaving ? 0.5 : 1 }}>
+                  onKeyDown={e => e.key === "Enter" && saveNickname()}
+                />
+                <button
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={saveNickname}
+                  disabled={nickSaving}
+                  style={{ opacity: nickSaving ? 0.5 : 1 }}
+                >
                   {nickSaving ? "..." : "SAVE"}
                 </button>
               </div>
-              {nickMsg && <p style={{ ...styles.msg, color: nickMsg.ok ? "#4ade80" : theme.error }}>{nickMsg.text}</p>}
+              {nickMsg && (
+                <p className={`${styles.msg} ${nickMsg.ok ? styles.msgOk : styles.msgErr}`}>
+                  {nickMsg.text}
+                </p>
+              )}
             </div>
 
             {/* Password */}
-            <div style={{ ...styles.section, borderTop: `1px solid ${theme.border}`, paddingTop: "1rem" }}>
-              <label style={{ ...styles.label, color: theme.textDim }}>CHANGE PASSWORD</label>
-              <input style={{ ...styles.input, background: theme.background, border: `1px solid ${theme.border}`, color: theme.text, marginBottom: "0.5rem" }}
-                type="password" placeholder="Current password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-              <input style={{ ...styles.input, background: theme.background, border: `1px solid ${theme.border}`, color: theme.text, marginBottom: "0.5rem" }}
-                type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-              <input style={{ ...styles.input, background: theme.background, border: `1px solid ${theme.border}`, color: theme.text, marginBottom: "0.75rem" }}
-                type="password" placeholder="Confirm new password" value={confirmPassword}
+            <div className={styles.sectionDivider}>
+              <label className={styles.label}>CHANGE PASSWORD</label>
+              <input
+                className={`${styles.input} ${styles.inputSpaced}`}
+                type="password"
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+              />
+              <input
+                className={`${styles.input} ${styles.inputSpaced}`}
+                type="password"
+                placeholder="New password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+              />
+              <input
+                className={`${styles.input} ${styles.inputSpacedLg}`}
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && savePassword()} />
-              <button onClick={savePassword} disabled={pwSaving || !currentPassword || !newPassword || !confirmPassword}
-                style={{ ...styles.btn, color: theme.primary, border: `1px solid ${theme.primaryDim}`, opacity: (pwSaving || !currentPassword || !newPassword || !confirmPassword) ? 0.5 : 1 }}>
+                onKeyDown={e => e.key === "Enter" && savePassword()}
+              />
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={savePassword}
+                disabled={pwSaving || !currentPassword || !newPassword || !confirmPassword}
+                style={{ opacity: (pwSaving || !currentPassword || !newPassword || !confirmPassword) ? 0.5 : 1 }}
+              >
                 {pwSaving ? "UPDATING..." : "UPDATE PASSWORD"}
               </button>
-              {pwMsg && <p style={{ ...styles.msg, color: pwMsg.ok ? "#4ade80" : theme.error }}>{pwMsg.text}</p>}
+              {pwMsg && (
+                <p className={`${styles.msg} ${pwMsg.ok ? styles.msgOk : styles.msgErr}`}>
+                  {pwMsg.text}
+                </p>
+              )}
             </div>
           </>
         )}
 
         {/* Admin tab */}
         {tab === "admin" && isAdmin && (
-          <div style={styles.section}>
+          <div className={styles.section}>
             <AdminPanel token={user.token} currentUserId={user.id} />
           </div>
         )}
@@ -233,21 +265,3 @@ export default function AccountSettings({ user, onClose, onNicknameChange, onAva
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  overlay: { position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" },
-  modal: { width: "480px", maxWidth: "95vw", borderRadius: "4px", fontFamily: "'Share Tech Mono', monospace", maxHeight: "90vh", overflowY: "auto" },
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.25rem", borderBottom: "1px solid" },
-  title: { fontSize: "0.8rem", letterSpacing: "0.1em" },
-  closeBtn: { background: "none", border: "none", cursor: "pointer", fontSize: "1rem", lineHeight: 1, padding: "2px" },
-  profile: { display: "flex", alignItems: "center", gap: "1rem", padding: "1.25rem", borderBottom: "1px solid" },
-  displayName: { fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: "1.1rem", letterSpacing: "0.05em" },
-  usernameHint: { fontSize: "0.72rem", marginTop: "2px" },
-  section: { padding: "1rem 1.25rem" },
-  label: { fontSize: "0.65rem", letterSpacing: "0.12em", display: "block", marginBottom: "0.4rem" },
-  hint: { fontSize: "0.7rem", marginBottom: "0.6rem", lineHeight: 1.4, opacity: 0.7 },
-  row: { display: "flex", gap: "0.5rem" },
-  input: { flex: 1, padding: "0.45rem 0.6rem", borderRadius: "2px", fontSize: "0.85rem", fontFamily: "'Share Tech Mono', monospace", outline: "none", width: "100%" },
-  btn: { background: "none", cursor: "pointer", borderRadius: "2px", padding: "0.45rem 0.75rem", fontSize: "0.65rem", letterSpacing: "0.1em", fontFamily: "'Share Tech Mono', monospace", transition: "all 0.15s", whiteSpace: "nowrap" },
-  msg: { fontSize: "0.72rem", marginTop: "0.5rem" },
-};

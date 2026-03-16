@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import Avatar from "./Avatar";
 import type { OnlineUser } from "../../types";
+import styles from "./MemberList.module.css";
 
 interface Props {
   onlineUsers: OnlineUser[];
@@ -10,81 +11,58 @@ interface Props {
 }
 
 const STATUS_COLORS = { online: "#4ade80", away: "#facc15", dnd: "#f87171" };
+const PANEL_WIDTH = 200;
 
 export default function MemberList({ onlineUsers, currentUserId, onUserClick }: Props) {
   const { theme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
-  const panelWidth = 200;
 
   return (
-    <div style={{ display: "flex", flexDirection: "row", height: "100%", flexShrink: 0 }}>
+    <div className={styles.root}>
       {/* Toggle tab */}
       <div
+        className={styles.toggleTab}
         onClick={() => setCollapsed(c => !c)}
         title={collapsed ? "Show members" : "Hide members"}
-        style={{
-          width: "18px", height: "100%", display: "flex",
-          alignItems: "center", justifyContent: "center",
-          borderLeft: `1px solid ${theme.border}`,
-          background: theme.surface2, cursor: "pointer", flexShrink: 0,
-          transition: "background 0.15s",
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = theme.primaryGlow; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = theme.surface2; }}
       >
-        <span style={{
-          color: theme.textDim, fontSize: "0.5rem", userSelect: "none",
-          writingMode: "vertical-rl", letterSpacing: "0.15em",
-          fontFamily: "'Share Tech Mono', monospace",
-        }}>
+        <span className={styles.toggleLabel}>
           {collapsed ? "▶ MEMBERS" : "◀"}
         </span>
       </div>
 
       {/* Sliding panel */}
-      <div style={{
-        width: collapsed ? 0 : panelWidth, overflow: "hidden",
-        transition: "width 0.2s ease", display: "flex",
-        flexDirection: "column", height: "100%",
-        background: `linear-gradient(180deg, ${theme.surface2} 0%, ${theme.surface} 100%)`,
-        borderLeft: collapsed ? "none" : `1px solid ${theme.border}`,
-      }}>
-        <div style={{ width: panelWidth, display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <div
+        className={`${styles.panel} ${collapsed ? styles.collapsed : ""}`}
+        style={{
+          width: collapsed ? 0 : PANEL_WIDTH,
+          background: `linear-gradient(180deg, ${theme.surface2} 0%, ${theme.surface} 100%)`,
+        }}
+      >
+        <div className={styles.panelInner} style={{ width: PANEL_WIDTH }}>
           {/* Header */}
-          <div style={{ padding: "1.1rem 1rem 0.6rem", borderBottom: `1px solid ${theme.border}`, flexShrink: 0 }}>
-            <div style={{
-              fontFamily: "'Orbitron', monospace", fontSize: "0.6rem", fontWeight: 700,
-              letterSpacing: "0.2em", color: theme.primary,
-              textShadow: `0 0 10px ${theme.primaryGlow}`,
-            }}>
-              MEMBERS
-            </div>
-            <div style={{ height: "1px", width: "30px", marginTop: "4px", background: `linear-gradient(90deg, ${theme.primary}, transparent)` }} />
+          <div className={styles.header}>
+            <div className={styles.headerTitle}>MEMBERS</div>
+            <div className={styles.headerUnderline} />
           </div>
 
           {/* Online label */}
-          <div style={{ padding: "0.6rem 1rem 0.3rem", display: "flex", alignItems: "center", gap: "0.4rem", flexShrink: 0 }}>
-            <span style={{ fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace", letterSpacing: "0.08em", color: theme.textDim }}>
-              // ONLINE
-            </span>
-            <span style={{
-              borderRadius: "8px", padding: "0 5px", fontSize: "0.58rem",
-              fontFamily: "'Share Tech Mono', monospace",
-              background: theme.primaryGlow, border: `1px solid ${theme.primaryDim}`, color: theme.primary,
-            }}>
-              {onlineUsers.length}
-            </span>
+          <div className={styles.onlineLabel}>
+            <span className={styles.onlineLabelText}>// ONLINE</span>
+            <span className={styles.onlineCount}>{onlineUsers.length}</span>
           </div>
 
           {/* User list */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "0.15rem 0 0.75rem" }}>
+          <div className={styles.userList}>
             {onlineUsers.map(u => (
-              <MemberRow key={u.id} user={u} isSelf={u.id === currentUserId} onUserClick={onUserClick} />
+              <MemberRow
+                key={u.id}
+                user={u}
+                isSelf={u.id === currentUserId}
+                onUserClick={onUserClick}
+              />
             ))}
             {onlineUsers.length === 0 && (
-              <div style={{ padding: "0.75rem 1rem", color: theme.textDim, fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", opacity: 0.5 }}>
-                no one online
-              </div>
+              <div className={styles.emptyText}>no one online</div>
             )}
           </div>
         </div>
@@ -98,50 +76,29 @@ function MemberRow({ user, isSelf, onUserClick }: {
   isSelf: boolean;
   onUserClick: (userId: number, username: string, el: HTMLElement) => void;
 }) {
-  const { theme } = useTheme();
-  const [hovered, setHovered] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const dotColor = STATUS_COLORS[user.status ?? "online"];
 
   return (
     <div
       ref={rowRef}
+      className={styles.memberRow}
       onClick={() => rowRef.current && onUserClick(user.id, user.username, rowRef.current)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        padding: "0.3rem 0.75rem", display: "flex", alignItems: "center",
-        gap: "0.5rem", cursor: "pointer", borderRadius: "2px", margin: "0 0.25rem",
-        background: hovered ? theme.primaryGlow : "transparent", transition: "background 0.1s",
-      }}
     >
-      <div style={{ position: "relative", flexShrink: 0 }}>
+      <div className={styles.avatarWrap}>
         <Avatar username={user.username} size={26} />
-        <div style={{
-          position: "absolute", bottom: -1, right: -1,
-          width: "8px", height: "8px", borderRadius: "50%",
-          background: dotColor, boxShadow: `0 0 5px ${dotColor}`,
-          border: `1px solid ${theme.surface2}`,
-        }} />
+        <div
+          className={styles.statusDot}
+          style={{ background: dotColor, boxShadow: `0 0 5px ${dotColor}` }}
+        />
       </div>
 
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{
-          fontSize: "0.82rem", fontFamily: "'Rajdhani', sans-serif", fontWeight: 600,
-          color: hovered ? theme.primary : theme.text,
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          transition: "color 0.1s",
-        }}>
-          {user.username}
-        </div>
+      <div className={styles.memberInfo}>
+        <div className={styles.memberName}>{user.username}</div>
         {user.statusText ? (
-          <div style={{ fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim, opacity: 0.6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {user.statusText}
-          </div>
+          <div className={styles.memberSubText}>{user.statusText}</div>
         ) : isSelf ? (
-          <div style={{ fontSize: "0.58rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim, opacity: 0.6 }}>
-            you
-          </div>
+          <div className={styles.memberSubText}>you</div>
         ) : null}
       </div>
     </div>

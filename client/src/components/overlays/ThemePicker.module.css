@@ -1,0 +1,123 @@
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  width: 480px;
+  max-width: 95vw;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  font-family: 'Orbitron', monospace;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+
+.closeBtn:hover {
+  color: var(--text);
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+.grid {
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ── Theme card ──────────────────────────────────────────────────────────── */
+.themeCard {
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.themeCard:hover {
+  transform: translateY(-1px);
+}
+
+.preview {
+  display: flex;
+  height: 50px;
+}
+
+.previewSidebar {
+  width: 25%;
+  height: 100%;
+}
+
+.previewMain {
+  flex: 1;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewMsg {
+  height: 8px;
+  border-radius: 1px;
+  border: 1px solid;
+  width: 80%;
+}
+
+.previewMsgShort {
+  height: 8px;
+  border-radius: 1px;
+  border: 1px solid;
+  width: 60%;
+}
+
+.cardFooter {
+  padding: 0.35rem 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cardName {
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.cardDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

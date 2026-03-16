@@ -1,4 +1,5 @@
 import React from "react";
+import styles from "./Avatar.module.css";
 
 function usernameToHue(username: string): number {
   let hash = 0;
@@ -11,7 +12,7 @@ function usernameToHue(username: string): number {
 interface Props {
   username: string;
   size?: number;
-  avatar?: string | null; // base64 custom image
+  avatar?: string | null;
   style?: React.CSSProperties;
 }
 
@@ -20,19 +21,16 @@ export default function Avatar({ username, size = 32, avatar, style }: Props) {
   const border = `hsl(${hue}, 70%, 50%)`;
 
   if (avatar) {
-    return ( 
+    return (
       <img
         src={avatar}
         alt={username}
         title={username}
+        className={styles.avatar}
         style={{
           width: size,
           height: size,
-          borderRadius: "4px",
           border: `1px solid ${border}`,
-          objectFit: "cover",
-          flexShrink: 0,
-          display: "block",
           boxShadow: `0 0 8px ${border}33`,
           ...style,
         }}
@@ -46,26 +44,18 @@ export default function Avatar({ username, size = 32, avatar, style }: Props) {
 
   return (
     <div
+      className={styles.initials}
+      title={username}
       style={{
         width: size,
         height: size,
-        borderRadius: "4px",
         background: bg,
         border: `1px solid ${border}`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        fontFamily: "'Orbitron', monospace",
-        fontWeight: 700,
         fontSize: size * 0.34,
         color: text,
-        letterSpacing: "0.05em",
-        userSelect: "none",
         boxShadow: `0 0 8px ${border}33`,
         ...style,
       }}
-      title={username}
     >
       {initials}
     </div>

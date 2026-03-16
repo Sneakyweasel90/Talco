@@ -1,9 +1,7 @@
 import axios from "axios";
 import { useState, useCallback, useEffect } from "react";
-import { useTheme } from "../../context/ThemeContext";
 import config from "../../config";
-
-// ── Invite Codes Panel ────────────────────────────────────────────────────────
+import styles from "./InvitePanel.module.css";
 
 interface InviteToken {
   id: number;
@@ -16,13 +14,12 @@ interface InviteToken {
 }
 
 export default function InvitePanel({ token }: { token: string }) {
-  const { theme } = useTheme();
-  const [invites, setInvites]       = useState<InviteToken[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [note, setNote]             = useState("");
-  const [expiresIn, setExpiresIn]   = useState("24");
-  const [creating, setCreating]     = useState(false);
-  const [copied, setCopied]         = useState<number | null>(null);
+  const [invites, setInvites] = useState<InviteToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [note, setNote] = useState("");
+  const [expiresIn, setExpiresIn] = useState("24");
+  const [creating, setCreating] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,25 +80,25 @@ export default function InvitePanel({ token }: { token: string }) {
   const isUsedOrExpired = (invite: InviteToken) =>
     !!invite.used_at || (!!invite.expires_at && new Date(invite.expires_at) < new Date());
 
-  if (loading) return <div style={{ color: theme.textDim, fontSize: "0.75rem", textAlign: "center", padding: "1rem" }}>LOADING...</div>;
+  if (loading) return <div className={styles.loading}>LOADING...</div>;
 
   return (
     <div>
       {/* Generate form */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem", padding: "0.75rem", border: `1px solid ${theme.border}`, borderRadius: "2px", background: theme.background }}>
-        <div style={{ fontSize: "0.6rem", color: theme.textDim, letterSpacing: "0.1em", fontFamily: "'Share Tech Mono', monospace" }}>GENERATE INVITE</div>
+      <div className={styles.generateForm}>
+        <div className={styles.generateLabel}>GENERATE INVITE</div>
         <input
+          className={styles.input}
           value={note}
           onChange={e => setNote(e.target.value)}
           placeholder="note (optional — who is this for?)"
-          style={{ ...inputStyle, background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text }}
         />
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <span style={{ fontSize: "0.6rem", color: theme.textDim, fontFamily: "'Share Tech Mono', monospace", whiteSpace: "nowrap" }}>EXPIRES IN</span>
+        <div className={styles.expiryRow}>
+          <span className={styles.expiryLabel}>EXPIRES IN</span>
           <select
+            className={styles.select}
             value={expiresIn}
             onChange={e => setExpiresIn(e.target.value)}
-            style={{ background: theme.surface, border: `1px solid ${theme.border}`, color: theme.text, fontSize: "0.7rem", fontFamily: "'Share Tech Mono', monospace", padding: "3px 6px", borderRadius: "2px", cursor: "pointer" }}
           >
             <option value="1">1 hour</option>
             <option value="6">6 hours</option>
@@ -113,7 +110,7 @@ export default function InvitePanel({ token }: { token: string }) {
           <button
             onClick={create}
             disabled={creating}
-            style={{ ...btnStyle, color: theme.primary, borderColor: theme.primaryDim, marginLeft: "auto" }}
+            className={`${styles.btn} ${styles.btnPrimary} ${styles.createBtn}`}
           >
             {creating ? "..." : "+ CREATE"}
           </button>
@@ -122,40 +119,37 @@ export default function InvitePanel({ token }: { token: string }) {
 
       {/* Token list */}
       {invites.length === 0 ? (
-        <div style={{ color: theme.textDim, fontSize: "0.7rem", textAlign: "center", padding: "0.5rem", fontFamily: "'Share Tech Mono', monospace" }}>
-          No invite codes yet
-        </div>
+        <div className={styles.empty}>No invite codes yet</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        <div className={styles.tokenList}>
           {invites.map(inv => {
             const dead = isUsedOrExpired(inv);
             return (
-              <div key={inv.id} style={{
-                border: `1px solid ${dead ? theme.border : theme.primaryDim}`,
-                borderRadius: "2px",
-                padding: "8px 10px",
-                background: dead ? theme.background : `${theme.primaryGlow}`,
-                opacity: dead ? 0.5 : 1,
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <code style={{ flex: 1, fontSize: "0.65rem", fontFamily: "'Share Tech Mono', monospace", color: dead ? theme.textDim : theme.primary, wordBreak: "break-all" }}>
+              <div key={inv.id} className={`${styles.tokenCard} ${dead ? styles.dead : ""}`}>
+                <div className={styles.tokenRow}>
+                  <code className={`${styles.tokenCode} ${dead ? styles.dead : ""}`}>
                     {inv.token}
                   </code>
                   {!dead && (
-                    <button onClick={() => copy(inv)} style={{ ...btnStyle, color: theme.primary, borderColor: theme.primaryDim, flexShrink: 0 }}>
+                    <button
+                      onClick={() => copy(inv)}
+                      className={`${styles.btn} ${styles.btnPrimary}`}
+                    >
                       {copied === inv.id ? "✓" : "COPY"}
                     </button>
                   )}
-                  <button onClick={() => revoke(inv.id)} style={{ ...btnStyle, color: theme.textDim, borderColor: theme.border, flexShrink: 0 }}>
+                  <button
+                    onClick={() => revoke(inv.id)}
+                    className={`${styles.btn} ${styles.btnMuted}`}
+                  >
                     ✕
                   </button>
                 </div>
-                <div style={{ display: "flex", gap: "1rem", fontSize: "0.6rem", fontFamily: "'Share Tech Mono', monospace", color: theme.textDim }}>
+                <div className={styles.tokenMeta}>
                   {inv.note && <span>{inv.note}</span>}
-                  <span style={{ marginLeft: inv.note ? 0 : "auto", opacity: 0.7 }}>{formatExpiry(inv)}</span>
+                  <span className={inv.note ? styles.tokenExpiry : styles.tokenExpiryAuto}>
+                    {formatExpiry(inv)}
+                  </span>
                 </div>
               </div>
             );
@@ -165,24 +159,3 @@ export default function InvitePanel({ token }: { token: string }) {
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  padding: "0.4rem 0.6rem",
-  borderRadius: "2px",
-  fontSize: "0.75rem",
-  fontFamily: "'Share Tech Mono', monospace",
-  outline: "none",
-  width: "100%",
-};
-
-const btnStyle: React.CSSProperties = {
-  background: "none",
-  border: "1px solid",
-  cursor: "pointer",
-  fontSize: "0.6rem",
-  padding: "2px 7px",
-  borderRadius: "2px",
-  fontFamily: "'Share Tech Mono', monospace",
-  letterSpacing: "0.08em",
-  transition: "all 0.15s",
-};
