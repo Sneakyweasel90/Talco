@@ -6,23 +6,31 @@ import styles from "./MemberList.module.css";
 
 interface Props {
   onlineUsers: OnlineUser[];
+  allUsers: { id: number; username: string }[];
   currentUserId: number;
   onUserClick: (userId: number, username: string, el: HTMLElement) => void;
 }
 
-const STATUS_COLORS = { online: "#4ade80", away: "#facc15", dnd: "#f87171" };
+const STATUS_COLORS = { online: "#4ade80", away: "#facc15", dnd: "#f87171", offline: "#6b7280" };
 const PANEL_WIDTH = 200;
 
-export default function MemberList({ onlineUsers, currentUserId, onUserClick }: Props) {
+export default function MemberList({
+  onlineUsers,
+  allUsers, 
+  currentUserId,
+  onUserClick,
+}: Props) {
   const { theme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
+  const onlineIds = new Set(onlineUsers.map((u) => u.id));
+  const offlineUsers = allUsers.filter((u) => !onlineIds.has(u.id));
 
   return (
     <div className={styles.root}>
       {/* Toggle tab */}
       <div
         className={styles.toggleTab}
-        onClick={() => setCollapsed(c => !c)}
+        onClick={() => setCollapsed((c) => !c)}
         title={collapsed ? "Show members" : "Hide members"}
       >
         <span className={styles.toggleLabel}>
@@ -53,7 +61,7 @@ export default function MemberList({ onlineUsers, currentUserId, onUserClick }: 
 
           {/* User list */}
           <div className={styles.userList}>
-            {onlineUsers.map(u => (
+            {onlineUsers.map((u) => (
               <MemberRow
                 key={u.id}
                 user={u}
@@ -64,6 +72,26 @@ export default function MemberList({ onlineUsers, currentUserId, onUserClick }: 
             {onlineUsers.length === 0 && (
               <div className={styles.emptyText}>no one online</div>
             )}
+            {offlineUsers.length > 0 && (
+              <>
+                <div className={styles.onlineLabel}>
+                  <span className={styles.onlineLabelText}>// OFFLINE</span>
+                  <span className={styles.onlineCount}>
+                    {offlineUsers.length}
+                  </span>
+                </div>
+                <div className={styles.userList}>
+                  {offlineUsers.map((u) => (
+                    <MemberRow
+                      key={u.id}
+                      user={{ ...u, status: "offline" } as any}
+                      isSelf={u.id === currentUserId}
+                      onUserClick={onUserClick}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -71,7 +99,11 @@ export default function MemberList({ onlineUsers, currentUserId, onUserClick }: 
   );
 }
 
-function MemberRow({ user, isSelf, onUserClick }: {
+function MemberRow({
+  user,
+  isSelf,
+  onUserClick,
+}: {
   user: OnlineUser;
   isSelf: boolean;
   onUserClick: (userId: number, username: string, el: HTMLElement) => void;
@@ -83,7 +115,9 @@ function MemberRow({ user, isSelf, onUserClick }: {
     <div
       ref={rowRef}
       className={styles.memberRow}
-      onClick={() => rowRef.current && onUserClick(user.id, user.username, rowRef.current)}
+      onClick={() =>
+        rowRef.current && onUserClick(user.id, user.username, rowRef.current)
+      }
     >
       <div className={styles.avatarWrap}>
         <Avatar username={user.username} size={26} />

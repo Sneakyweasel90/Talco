@@ -52,6 +52,7 @@ export default function Chat() {
   const [activeDMConv, setActiveDMConv] = useState<DMConversation | null>(null);
   const [myStatus, setMyStatus] = useState<UserStatus>("online");
   const [myStatusText, setMyStatusText] = useState<string | null>(null);
+  const [allUsers, setAllUsers] = useState<{ id: number; username: string }[]>([]);
 
   const { conversations: dmConversations, dmLoading, openDM, markRead, onDMMessage, totalUnread } = useDMs(user!.token, user!.id);
 
@@ -176,6 +177,13 @@ export default function Chat() {
     currentChannelRef.current = conv.channelId;
     send({ type: "join", channelId: conv.channelId });
   }, [markRead, send, currentChannelRef]);
+
+  useEffect(() => {
+  if (!user?.token) return;
+  axios.get(`${config.HTTP}/api/users/all`, { headers: { Authorization: `Bearer ${user.token}` } })
+    .then(({ data }) => setAllUsers(data))
+    .catch(() => {});
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.root}>
