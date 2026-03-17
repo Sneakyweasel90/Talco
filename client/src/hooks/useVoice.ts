@@ -3,6 +3,7 @@ import { Room, RoomEvent, Track  } from "livekit-client";
 import axios from "axios";
 import config from "../config";
 
+
 function loadVolume(key: string): number {
   const val = localStorage.getItem(`talko_vol_${key}`);
   return val !== null ? parseFloat(val) : 1;
@@ -14,10 +15,12 @@ function saveVolume(key: string, vol: number) {
 
 export function useVoice(token: string, send: (data: object) => void) {
   const [inVoice, setInVoice] = useState(false);
-  const [voiceChannel, setVoiceChannel] = useState<string | null>(null);
+  const [voiceChannel, setVoiceChannel] = useState<string | null>(null);  
   const [participants, setParticipants] = useState<string[]>([]);
   const [participantVolumes, setParticipantVolumes] = useState<Record<string, number>>({});
   const [selfVolume, setSelfVolumeState] = useState<number>(() => loadVolume("__self__"));
+  const voiceChannelRef = useRef<string | null>(null);
+
 
   const roomRef = useRef<Room | null>(null);
   const isDeafenedRef = useRef(false);
@@ -32,10 +35,16 @@ export function useVoice(token: string, send: (data: object) => void) {
     });
   }, []);
 
+  const updateVoiceChannel = useCallback((ch: string | null) => {
+    voiceChannelRef.current = ch;
+    setVoiceChannel(ch);
+  }, []);
+
   const joinVoice = useCallback(async (channelId: string) => {
-    // Leave existing room if any
-    if (roomRef.current) {
+    if (roomRef.current || voiceChannelRef.current) {
       send({ type: "voice_leave" });
+    }
+    if (roomRef.current) {
       await roomRef.current.disconnect();
       roomRef.current = null;
     }
@@ -63,7 +72,7 @@ export function useVoice(token: string, send: (data: object) => void) {
     });
     room.on(RoomEvent.Disconnected, () => {
       setInVoice(false);
-      setVoiceChannel(null);
+      updateVoiceChannel(null);
       setParticipants([]);
       setParticipantVolumes({});
       roomRef.current = null;
@@ -77,19 +86,19 @@ export function useVoice(token: string, send: (data: object) => void) {
     });
 
     setInVoice(true);
-    setVoiceChannel(channelId);
+    updateVoiceChannel(channelId);
     refreshParticipants(room);
-  }, [token, refreshParticipants]);
+  }, [token, refreshParticipants, send, updateVoiceChannel]);
 
   const leaveVoice = useCallback(async () => {
     send({ type: "voice_leave" });
     await roomRef.current?.disconnect();
     roomRef.current = null;
     setInVoice(false);
-    setVoiceChannel(null);
+    updateVoiceChannel(null);
     setParticipants([]);
     setParticipantVolumes({});
-  }, []);
+  }, [send, updateVoiceChannel]);
 
   const setMuted = useCallback((muted: boolean) => {
     const room = roomRef.current;
@@ -131,10 +140,10 @@ export function useVoice(token: string, send: (data: object) => void) {
     // Join AFK presence only — no LiveKit connection
     send({ type: "voice_join", channelId: "voice-afk" });
     setInVoice(false);
-    setVoiceChannel("voice-afk");
+    updateVoiceChannel("voice-afk");
     setParticipants([]);
     setParticipantVolumes({});
-  }, [send]);
+  }, [send, updateVoiceChannel]);
 
   return {
     inVoice,
