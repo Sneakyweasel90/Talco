@@ -7,7 +7,7 @@ const router = express.Router();
 // GET all channels
 router.get("/", requireAuth, async (req, res) => {
   const { rows } = await db.query(
-    `SELECT id, name, type, created_by, created_at FROM channels ORDER BY type, name`
+    `SELECT id, name, type, created_by, created_at, is_afk FROM channels ORDER BY type, name`
   );
   res.json(rows);
 });
@@ -100,6 +100,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
 
   // Don't allow deleting seeded defaults
   const defaults = ["general", "random", "yakking", "voice-general", "voice-chill"];
+  if (ch.is_afk) return res.status(403).json({ error: "Cannot delete the AFK channel" });
   if (defaults.includes(ch.name))
     return res.status(403).json({ error: "Cannot delete default channels" });
 

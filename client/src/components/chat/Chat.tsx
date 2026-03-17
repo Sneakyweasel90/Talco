@@ -19,6 +19,7 @@ import UserPopover from "../overlays/UserPopover";
 import type { OnlineUser, DMConversation, GroupedMessage, UserStatus } from "../../types";
 import { useUnreadChannels } from "../../hooks/useUnreadChannels";
 import styles from "./Chat.module.css";
+import { useAfkDetector } from "../../hooks/useAfkDetector";
 
 export default function Chat() {
   const { user, logout, updateNickname, updateAvatar } = useAuth();
@@ -146,8 +147,10 @@ export default function Chat() {
   const {
     inVoice, voiceChannel, participants, participantVolumes, selfVolume,
     joinVoice, leaveVoice, setParticipantVolume, setSelfVolume,
-    setMuted, setAllParticipantsDeafened,
+    setMuted, setAllParticipantsDeafened, joinAfk,
   } = useVoice(user!.token, send);
+
+  useAfkDetector(inVoice, voiceChannel, joinAfk);
 
   const handleLogout = useCallback(async () => {
     disconnect();
@@ -178,6 +181,7 @@ export default function Chat() {
       <div className={styles.body}>
         <ResizableSidebar>
           <Sidebar
+            joinAfk={joinAfk}
             inVoice={inVoice}
             setMuted={setMuted}
             setAllParticipantsDeafened={setAllParticipantsDeafened}

@@ -143,3 +143,12 @@ export interface PinnedMessage {
   pinned_by_username: string | null;
   pinned_at: string;
 }
+
+export interface Channel {
+  id: number;
+  name: string;
+  type: "text" | "voice";
+  created_by: number | null;
+  created_at: string;
+  is_afk?: boolean;
+}

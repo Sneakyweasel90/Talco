@@ -3,9 +3,8 @@ import { useTheme } from "../../context/ThemeContext";
 import { useChannels } from "../../hooks/useChannels";
 import ChannelList from "./ChannelList";
 import SidebarFooter from "./SidebarFooter";
-import type { OnlineUser, DMConversation, UserStatus } from "../../types";
+import type { OnlineUser, DMConversation, UserStatus, Channel } from "../../types";
 import styles from "./Sidebar.module.css";
-import VoicePanel from "../voice/VoicePanel";
 
 interface Props {
   channel: string;
@@ -42,6 +41,8 @@ interface Props {
   inVoice: boolean;
   setMuted: (muted: boolean) => void;
   setAllParticipantsDeafened: (deafened: boolean) => void;
+  joinAfk: () => void;
+  afkChannel: Channel | null;
 }
 
 export default function Sidebar({
@@ -52,7 +53,7 @@ export default function Sidebar({
   dmConversations, dmLoading, activeDMChannel, totalUnread,
   activeTab, onTabChange, onSelectDM,
   onTextChannelNamesChange, inVoice, setMuted, setAllParticipantsDeafened,
-  currentStatus, currentStatusText, onStatusChange,
+  currentStatus, currentStatusText, onStatusChange, afkChannel, joinAfk,
 }: Props) {
   const { theme } = useTheme();
   const {
@@ -110,6 +111,8 @@ export default function Sidebar({
             onCancelCreate={cancelCreate}
             voiceOccupancy={voiceOccupancy}
             unreadCounts={unreadCounts}
+            afkChannel={afkChannel}
+            onJoinAfk={joinAfk}
           />
         </div>
       )}

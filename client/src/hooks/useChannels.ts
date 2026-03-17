@@ -79,7 +79,8 @@ export function useChannels(token: string) {
   };
 
   const textChannels = channels.filter(c => c.type === "text");
-  const voiceChannels = channels.filter(c => c.type === "voice");
+  const voiceChannels = channels.filter(c => c.type === "voice" && !c.is_afk);
+  const afkChannel = channels.find(c => c.is_afk) ?? null;
 
   return {
     textChannels,
@@ -94,5 +95,6 @@ export function useChannels(token: string) {
     toggleCreateText,
     toggleCreateVoice,
     cancelCreate,
+    afkChannel,
   };
 }

@@ -68,12 +68,22 @@ export async function initDB() {
   `);
 
   // Users table additions
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT;`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(50);`);
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS public_key TEXT;`,
+  );
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(50);`,
+  );
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT;`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_role_name VARCHAR(50);`);
-  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ;`);
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) NOT NULL DEFAULT 'user';`,
+  );
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS custom_role_name VARCHAR(50);`,
+  );
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ;`,
+  );
 
   // DM tables
   await pool.query(`
@@ -95,8 +105,12 @@ export async function initDB() {
   `);
 
   // Messages table additions
-  await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;`);
-  await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;`);
+  await pool.query(
+    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INT REFERENCES messages(id) ON DELETE SET NULL;`,
+  );
+  await pool.query(
+    `ALTER TABLE messages ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;`,
+  );
 
   // ── Invite tokens table ──────────────────────────────────────────────────────
   // Replaces the static INVITE_CODE env var with admin-generated single-use tokens.
@@ -115,7 +129,9 @@ export async function initDB() {
       note VARCHAR(100)
     );
   `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_invite_tokens_token ON invite_tokens(token);`);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_invite_tokens_token ON invite_tokens(token);`,
+  );
 
   await pool.query(`
   CREATE TABLE IF NOT EXISTS pinned_messages (
@@ -127,7 +143,9 @@ export async function initDB() {
     UNIQUE(channel_name, message_id)
   );
 `);
-await pool.query(`CREATE INDEX IF NOT EXISTS idx_pinned_messages_channel ON pinned_messages(channel_name);`);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_pinned_messages_channel ON pinned_messages(channel_name);`,
+  );
 
   // Promote the oldest account to admin (safe to re-run)
   await pool.query(`
@@ -144,7 +162,9 @@ await pool.query(`CREATE INDEX IF NOT EXISTS idx_pinned_messages_channel ON pinn
       PRIMARY KEY (user_id, channel_name)
     );
   `);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_channel_last_read ON channel_last_read(user_id);`);
+  await pool.query(
+    `CREATE INDEX IF NOT EXISTS idx_channel_last_read ON channel_last_read(user_id);`,
+  );
 
   await pool.query(`
     INSERT INTO channels (name, type) VALUES
@@ -152,9 +172,13 @@ await pool.query(`CREATE INDEX IF NOT EXISTS idx_pinned_messages_channel ON pinn
       ('random', 'text'),
       ('yakking', 'text'),
       ('voice-general', 'voice'),
-      ('voice-chill', 'voice')
+      ('voice-chill', 'voice'),
+      ('voice-afk', 'voice')
     ON CONFLICT (name) DO NOTHING;
   `);
+
+  await pool.query(`ALTER TABLE channels ADD COLUMN IF NOT EXISTS is_afk BOOLEAN DEFAULT FALSE`);
+  await pool.query(`UPDATE channels SET is_afk = TRUE WHERE name = 'voice-afk'`);
 
   console.log("DB tables ready");
 }

@@ -58,6 +58,8 @@ interface ChannelListProps {
   onChannelNameChange: (val: string) => void;
   onCreateChannel: (type: "text" | "voice") => void;
   onCancelCreate: () => void;
+  afkChannel: Channel | null;
+  onJoinAfk: () => void;
 }
 
 export default function ChannelList({
@@ -66,7 +68,7 @@ export default function ChannelList({
   newChannelName, creating, showCreateText, showCreateVoice, voiceOccupancy,
   onSelectChannel, onJoinVoice, onLeaveVoice, onDeleteChannel,
   onToggleCreateText, onToggleCreateVoice,
-  onChannelNameChange, onCreateChannel, onCancelCreate,
+  onChannelNameChange, onCreateChannel, onCancelCreate, afkChannel, onJoinAfk,
 }: ChannelListProps) {
 
   return (
@@ -128,6 +130,29 @@ export default function ChannelList({
         <span className={styles.sectionLabel}>// VOICE CHANNELS</span>
         <button className={styles.addBtn} onClick={onToggleCreateVoice} title="Create voice channel">+</button>
       </div>
+
+      {afkChannel && (
+                <div className={styles.afkChannel}>
+                  <button
+                    onClick={onJoinAfk}
+                    className={`${styles.channelItem} ${voiceChannel === "voice-afk" ? styles.active : ""}`}
+                  >
+                    <span className={styles.voiceIcon}>💤</span>
+                    <span className={styles.channelName}>AFK</span>
+                    {voiceOccupancy["voice-afk"]?.length > 0 && (
+                      <span className={styles.occupantCount}>
+                        {voiceOccupancy["voice-afk"].length}
+                      </span>
+                    )}
+                  </button>
+                  {/* Show occupants */}
+                  {(voiceOccupancy["voice-afk"] ?? []).map(name => (
+                    <div key={name} className={styles.occupantRow}>
+                      <span className={styles.occupantName}>{name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
       {showCreateVoice && (
         <CreateChannelInput

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Room, RoomEvent, RemoteParticipant, Track, RemoteTrackPublication } from "livekit-client";
+import { Room, RoomEvent, Track  } from "livekit-client";
 import axios from "axios";
 import config from "../config";
 
@@ -120,10 +120,20 @@ export function useVoice(token: string, send: (data: object) => void) {
     setSelfVolumeState(clamped);
   }, []);
 
-  // No-op — LiveKit handles reconnection automatically
-  const rejoinVoice = useCallback(() => {}, []);
-  const handleVoiceMessage = useCallback(async () => {}, []);
-  const localStream = useRef<MediaStream | null>(null);
+  const joinAfk = useCallback(async () => {
+    // Disconnect from current LiveKit room if in one
+    if (roomRef.current) {
+      send({ type: "voice_leave" });
+      await roomRef.current.disconnect();
+      roomRef.current = null;
+    }
+    // Join AFK presence only — no LiveKit connection
+    send({ type: "voice_join", channelId: "voice-afk" });
+    setInVoice(false);
+    setVoiceChannel("voice-afk");
+    setParticipants([]);
+    setParticipantVolumes({});
+  }, [send]);
 
   return {
     inVoice,
@@ -133,12 +143,10 @@ export function useVoice(token: string, send: (data: object) => void) {
     selfVolume,
     joinVoice,
     leaveVoice,
-    rejoinVoice,
-    handleVoiceMessage,
-    localStream,
     setParticipantVolume,
     setSelfVolume,
     setMuted,
     setAllParticipantsDeafened,
+    joinAfk,
   };
 }
