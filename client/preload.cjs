@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   offPttKeydown: (cb) => ipcRenderer.removeListener("ptt-keydown", cb),
   onPttKeyup: (cb) => ipcRenderer.on("ptt-keyup", cb),
   offPttKeyup: (cb) => ipcRenderer.removeListener("ptt-keyup", cb),
+  getSources: () => ipcRenderer.invoke("get-sources"),
 });

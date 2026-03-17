@@ -137,27 +137,55 @@ export function useVoice(token: string, send: (data: object) => void) {
   }, []);
 
   const stopScreenShare = useCallback(async () => {
-      const room = roomRef.current;
-      if (!room) return;
-      await room.localParticipant.setScreenShareEnabled(false);
-      setIsScreenSharing(false);
-      setLocalScreenShareTrack(null);
-    }, []);
+    const room = roomRef.current;
+    if (!room) return;
+
+    // find the screen share publication
+    const pub = Array.from(
+      room.localParticipant.videoTrackPublications.values()
+    ).find(p => p.source === Track.Source.ScreenShare);
+
+    if (pub) {
+      await room.localParticipant.unpublishTrack(pub.track!);
+      pub.track?.stop();
+    }
+
+    setIsScreenSharing(false);
+    setLocalScreenShareTrack(null);
+  }, []);
 
   const startScreenShare = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
+
     try {
-      await room.localParticipant.setScreenShareEnabled(true);
+      const sources = await (window as any).electronAPI.getSources();
+
+      const source = sources[0];
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          mandatory: {
+            chromeMediaSource: "desktop",
+            chromeMediaSourceId: source.id,
+          },
+        } as any,
+      });
+
+      const track = stream.getVideoTracks()[0];
+
+      await room.localParticipant.publishTrack(track, {
+        source: Track.Source.ScreenShare,
+      });
+
       setIsScreenSharing(true);
-      const pub = Array.from(room.localParticipant.screenShareTrackPublications.values())[0];
-      if (pub?.track) {
-        setLocalScreenShareTrack(pub.track.mediaStreamTrack);
-        pub.track.mediaStreamTrack.addEventListener("ended", () => {
-          setIsScreenSharing(false);
-          setLocalScreenShareTrack(null);
-        });
-      }
+      setLocalScreenShareTrack(track);
+
+      track.addEventListener("ended", () => {
+        stopScreenShare();
+      });
+
     } catch (e) {
       console.warn("Screen share failed or cancelled:", e);
     }

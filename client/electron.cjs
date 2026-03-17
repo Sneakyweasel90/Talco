@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, dialog, shell, protocol } = require("electron");
+const { app, BrowserWindow, ipcMain, Notification, dialog, shell, protocol, desktopCapturer } = require("electron");
 const path = require("path");
 const https = require("https");
 const fs = require("fs");
@@ -408,6 +408,13 @@ ipcMain.handle("read-file", async (event, filename) => {
     return fs.readFileSync(normalPath);
   }
 });
+
+ipcMain.handle("get-sources", async () => {
+  return await desktopCapturer.getSources({
+    types: ["screen", "window"],
+  });
+});
+
 ipcMain.on("minimize", () => win?.minimize());
 ipcMain.on("maximize", () => win?.isMaximized() ? win.unmaximize() : win.maximize());
 ipcMain.on("close", () => win?.close());
