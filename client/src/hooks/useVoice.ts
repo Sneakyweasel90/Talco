@@ -35,6 +35,7 @@ export function useVoice(token: string, send: (data: object) => void) {
   const joinVoice = useCallback(async (channelId: string) => {
     // Leave existing room if any
     if (roomRef.current) {
+      send({ type: "voice_leave" });
       await roomRef.current.disconnect();
       roomRef.current = null;
     }
