@@ -8,6 +8,9 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import EmojiPickerLib from "emoji-picker-react";
+import LinkPreview from "./LinkPreview";
+
+const URL_REGEX = /https?:\/\/[^\s<>"']+/g;
 
 interface EmojiPickerProps {
   messageId: number;
@@ -15,8 +18,14 @@ interface EmojiPickerProps {
   onClose: () => void;
 }
 
+function extractFirstUrl(text: string): string | null {
+  if (text.startsWith("[img]")) return null;
+  const match = text.match(URL_REGEX);
+  return match ? match[0] : null;
+}
+
 function renderContent(text: string, currentUsername: string): React.ReactNode {
-    if (text.startsWith("[img]")) {
+  if (text.startsWith("[img]")) {
     const src = text.slice(5);
     return (
       <img
@@ -64,13 +73,16 @@ function renderContent(text: string, currentUsername: string): React.ReactNode {
           );
         },
         p({ children }: any) {
-          const highlightMentions = (child: React.ReactNode): React.ReactNode => {
+          const highlightMentions = (
+            child: React.ReactNode,
+          ): React.ReactNode => {
             if (typeof child !== "string") return child;
             const parts = child.split(/(@\S+)/g);
             return parts.map((part, i) => {
               if (part.startsWith("@")) {
                 const name = part.slice(1);
-                const isMe = name.toLowerCase() === currentUsername.toLowerCase();
+                const isMe =
+                  name.toLowerCase() === currentUsername.toLowerCase();
                 return (
                   <span
                     key={i}
@@ -331,12 +343,18 @@ export default function MessageItem({
             </button>
           </form>
         ) : (
-          <div className={styles.messageContent}>
-            {renderContent(msg.content, currentUsername)}
-            {msg.edited_at && (
-              <span className={styles.editedLabel}>(edited)</span>
-            )}
-          </div>
+          <>
+            <div className={styles.messageContent}>
+              {renderContent(msg.content, currentUsername)}
+              {msg.edited_at && (
+                <span className={styles.editedLabel}>(edited)</span>
+              )}
+            </div>
+            {(() => {
+              const url = extractFirstUrl(msg.content);
+              return url ? <LinkPreview url={url} /> : null;
+            })()}
+          </>
         )}
 
         {/* Reactions */}
