@@ -42,7 +42,8 @@
     "files": [
       "dist/**/*",
       "electron.cjs",
-      "preload.cjs"
+      "preload.cjs",
+      "electron/**/*"
     ],
     "npmRebuild": true,
     "buildDependenciesFromSource": false
